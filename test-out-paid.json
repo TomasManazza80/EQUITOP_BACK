@@ -1,0 +1,142 @@
+[
+  {
+    "id": 8,
+    "identifier": "a69d7dee-6228-4263-b451-6000716b8c1f",
+    "items": [
+      {
+        "id": "3-#F5F5F7-12",
+        "title": "FEFF (#F5F5F7 / 12)",
+        "unit_price": 1,
+        "quantity": 1,
+        "color": "#F5F5F7",
+        "storage": "12",
+        "origenDeVenta": "ecommerce"
+      }
+    ],
+    "cellphone": "3425937358",
+    "name": "tom",
+    "address": "",
+    "city": "",
+    "province": "",
+    "postalCode": "",
+    "shippingOption": "pickup",
+    "shippingCost": "0.00",
+    "total": "1.10",
+    "status": "pending",
+    "createdAt": "2026-02-20T17:51:53.172Z",
+    "updatedAt": "2026-02-20T17:51:53.172Z",
+    "dispatchStatus": "PENDIENTE"
+  },
+  {
+    "id": 7,
+    "identifier": "727a23ff-1a36-44d4-960d-4919b7ba9332",
+    "items": [
+      {
+        "id": "3-#F5F5F7-12",
+        "title": "FEFF (#F5F5F7 / 12)",
+        "unit_price": 1,
+        "quantity": 1,
+        "color": "#F5F5F7",
+        "storage": "12",
+        "origenDeVenta": "ecommerce"
+      }
+    ],
+    "cellphone": "3425937358",
+    "name": "tom",
+    "address": "",
+    "city": "",
+    "province": "",
+    "postalCode": "",
+    "shippingOption": "pickup",
+    "shippingCost": "0.00",
+    "total": "1.10",
+    "status": "pending",
+    "createdAt": "2026-02-20T17:24:39.204Z",
+    "updatedAt": "2026-02-20T17:24:39.204Z",
+    "dispatchStatus": "PENDIENTE"
+  },
+  {
+    "id": 6,
+    "identifier": "241e2be7-aea7-4685-9874-25f782b80127",
+    "items": [
+      {
+        "id": "3-#F5F5F7-12",
+        "title": "FEFF (#F5F5F7 / 12)",
+        "unit_price": 1,
+        "quantity": 1,
+        "color": "#F5F5F7",
+        "storage": "12",
+        "origenDeVenta": "ecommerce"
+      }
+    ],
+    "cellphone": "3425937358",
+    "name": "wq",
+    "address": "",
+    "city": "",
+    "province": "",
+    "postalCode": "",
+    "shippingOption": "pickup",
+    "shippingCost": "0.00",
+    "total": "1.10",
+    "status": "pending",
+    "createdAt": "2026-02-19T21:04:14.016Z",
+    "updatedAt": "2026-02-19T21:04:14.016Z",
+    "dispatchStatus": "PENDIENTE"
+  },
+  {
+    "id": 5,
+    "identifier": "08e65d39-74bb-476f-a702-358fe86edeff",
+    "items": [
+      {
+        "id": "3-#F5F5F7-12",
+        "title": "FEFF (#F5F5F7 / 12)",
+        "unit_price": 1,
+        "quantity": 1,
+        "color": "#F5F5F7",
+        "storage": "12",
+        "origenDeVenta": "ecommerce"
+      }
+    ],
+    "cellphone": "3425937358",
+    "name": "tom",
+    "address": "",
+    "city": "",
+    "province": "",
+    "postalCode": "",
+    "shippingOption": "pickup",
+    "shippingCost": "0.00",
+    "total": "1.10",
+    "status": "pending",
+    "createdAt": "2026-02-19T20:56:19.180Z",
+    "updatedAt": "2026-02-19T20:56:19.180Z",
+    "dispatchStatus": "PENDIENTE"
+  },
+  {
+    "id": 4,
+    "identifier": "2f764998-d40f-48f8-82ce-c17563a0c674",
+    "items": [
+      {
+        "id": "3-#F5F5F7-12",
+        "title": "FEFF (#F5F5F7 / 12)",
+        "unit_price": 1,
+        "quantity": 1,
+        "color": "#F5F5F7",
+        "storage": "12",
+        "origenDeVenta": "ecommerce"
+      }
+    ],
+    "cellphone": "3425937358",
+    "name": "tom",
+    "address": "",
+    "city": "",
+    "province": "",
+    "postalCode": "",
+    "shippingOption": "pickup",
+    "shippingCost": "0.00",
+    "total": "1.10",
+    "status": "pending",
+    "createdAt": "2026-02-19T20:51:55.269Z",
+    "updatedAt": "2026-02-19T20:51:55.269Z",
+    "dispatchStatus": "PENDIENTE"
+  }
+]

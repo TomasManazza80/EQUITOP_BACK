@@ -1,0 +1,117 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+// ✅ SI usas ES Modules en todo el proyecto, debes importar app así:
+import app from "../app.js"; // <-- IMPORT (NO require)
+import debug from "debug";
+import http from "http";
+
+// ✅ Sequelize debe importarse por defecto (ESM)
+import { Sequelize } from "../models/index.js";
+import { init as initWhatsapp } from "../services/QrService/QrService.js";
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+// Usamos el puerto de Render (PORT) o "3000" localmente
+const port = normalizePort(process.env.PORT || "3000");
+app.set("port", port);
+
+/**
+ * Create HTTP server.
+ */
+
+const server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ * Espera a que sequelize sincronice.
+ */
+
+Sequelize.sync({ alter: true })
+  .then(() => {
+    console.log("✅ Database synced! Iniciando servidor...");
+    initWhatsapp(); // Inicializa el servicio de WhatsApp
+    server.listen(port);
+    server.on("error", onError);
+    server.on("listening", onListening);
+  })
+  .catch((error) => {
+    // ❌ IMPORTANTE: Mostrar el error de conexión para debugging en Render
+    console.error("❌❌❌ ERROR CRÍTICO: Error al sincronizar la base de datos (DB Connection Failed).", error);
+
+    // Si la DB falla, por lo menos inicia el servidor para que Render detecte el puerto
+    // y puedas debuggear.
+    console.log("⚠️ Fallo en la DB, pero intentando iniciar el servidor en el puerto: " + port);
+
+    // Intentamos iniciar el servidor de todas formas, pero es probable que Render crashee
+    // si el error es grave y no se maneja bien el process.exit.
+    server.listen(port);
+    server.on("error", onError);
+    server.on("listening", onListening);
+
+    // Si el error persiste, la causa es 100% la conexión a la base de datos (variables de entorno o permisos).
+    // Puedes comentar las líneas server.listen(port) si no quieres que la app intente iniciar
+    // después de un fallo crítico de DB.
+  });
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  const port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== "listen") {
+    throw error;
+  }
+
+  const bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case "EACCES":
+      console.error(`${bind} requires elevated privileges`);
+      process.exit(1);
+      break;
+    case "EADDRINUSE":
+      console.error(`${bind} is already in use`);
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  const addr = server.address();
+  const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
+  debug("backend:server")(`Listening on ${bind}`);
+  console.log(`✅ Servidor escuchando en ${bind}`); // Log adicional para confirmar en Render
+}
