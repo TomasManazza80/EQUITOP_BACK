@@ -21,6 +21,10 @@ const balanceMensual = Sequelize.define(
             type: DataTypes.STRING,
             allowNull: true,
         },
+        codigoBarras: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
         proveedor: {
             type: DataTypes.STRING,
             allowNull: true,

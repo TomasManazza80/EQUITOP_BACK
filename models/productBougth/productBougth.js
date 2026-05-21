@@ -30,6 +30,10 @@ const ProductBought = Sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    codigoBarras: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     cantidad: {
       type: DataTypes.INTEGER,
       allowNull: false,

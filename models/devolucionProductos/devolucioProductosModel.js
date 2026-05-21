@@ -57,7 +57,7 @@ const DevolucionProducto = Sequelize.define("devolucionProducto", {
     }
 }, { timestamps: true });
 
-// --- ASOCIACIONES FEDECELL_CORE ---
+// --- ASOCIACIONES EQUITOP_CORE ---
 Devolucion.hasMany(DevolucionLote, { as: 'returnPackages', foreignKey: 'devolucionId' });
 DevolucionLote.belongsTo(Devolucion);
 

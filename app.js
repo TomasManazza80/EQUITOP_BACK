@@ -115,7 +115,7 @@ app.use('/success-cases', successCasesRouter);
 cron.schedule('00 23 * * *', async () => {
     try {
         const { GlobalConfig } = await import('./models/index.js');
-        const autoActivo = await GlobalConfig.findOne({ where: { key: 'fedecell_auto_cierre_activado' } });
+        const autoActivo = await GlobalConfig.findOne({ where: { key: 'equitop_auto_cierre_activado' } });
         if (autoActivo?.value === 'true') {
             console.log('[CRON] AUTO_ACTIV detectado, ejecutando cierre de caja...');
             await cierreCajaService.ejecutarCierreAutomatico({ forceToday: true });

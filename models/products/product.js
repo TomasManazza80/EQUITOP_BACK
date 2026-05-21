@@ -28,6 +28,10 @@ const Product = Sequelize.define("product", {
   alerta: {
     type: DataTypes.INTEGER,
   },
+  codigoBarras: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   aplicarMayoristaPorCantidad: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,

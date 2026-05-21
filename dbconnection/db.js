@@ -51,7 +51,7 @@ if (process.env.DATABASE_URL) {
   sequelize = new Sequelize(sequelizeConfig);
 }
 
-// --- PROTOCOLO DE SINCRONIZACIÓN FEDECELL_CORE ---
+// --- PROTOCOLO DE SINCRONIZACIÓN EQUITOP_CORE ---
 (async () => {
   try {
     await sequelize.authenticate();

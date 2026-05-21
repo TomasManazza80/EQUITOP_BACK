@@ -52,7 +52,7 @@ const cierreCajaService = {
 
         try {
             // 1. Check Config
-            const autoActivo = await GlobalConfig.findOne({ where: { key: 'fedecell_auto_cierre_activado' } });
+            const autoActivo = await GlobalConfig.findOne({ where: { key: 'equitop_auto_cierre_activado' } });
             if (autoActivo?.value !== 'true' && !forceToday) {
                 console.log("[CIERRE_AUTO] Funcionalidad desactivada en configuración.");
                 return { success: true, message: "Disabled" };
@@ -319,7 +319,7 @@ const cierreCajaService = {
         await Promise.all(updateBalancePromises);
 
         // Optional reset of bills (BalanceMensual)
-        const resetConfig = await GlobalConfig.findOne({ where: { key: 'fedecell_reseteo_billetes_auto' } });
+        const resetConfig = await GlobalConfig.findOne({ where: { key: 'equitop_reseteo_billetes_auto' } });
         if (resetConfig?.value === 'true') {
             const manualIds = manual.map(m => m.BalanceMensualId);
             if (manualIds.length > 0) await BalanceMensual.destroy({ where: { BalanceMensualId: manualIds } });

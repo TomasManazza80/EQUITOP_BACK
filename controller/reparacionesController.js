@@ -80,7 +80,7 @@ const reparacionesController = {
             const equipo = item.modeloEquipo || 'Equipo en reparación';
             const monto = item.montoAPagar ? `$${parseFloat(item.montoAPagar).toLocaleString()}` : 'Presupuesto pendiente';
 
-            const message = `*FEDE CELL - Servicio Técnico* 📱\n\n` +
+            const message = `*EQUITOP - Servicio Técnico* 📱\n\n` +
                 `Hola *${nombre}* 👋, te informamos que tu equipo ya está listo para ser retirado!\n\n` +
                 `*Detalles de la reparación:*\n` +
                 `🛠️ *Equipo:* ${equipo}\n` +

@@ -69,7 +69,7 @@ const createPayment = async (req, res) => {
         title: "Costo de Envío",
         unit_price: Number(shippingCost),
         quantity: 1,
-        description: "Logística FEDE CELL"
+        description: "Logística EQUITOP"
       });
     }
 
@@ -174,7 +174,7 @@ const handleWebhook = async (req, res) => {
       }
 
       if (order) {
-        console.log(`[FEDE CELL] PROCESANDO ORDEN: ${order.identifier}`);
+        console.log(`[EQUITOP] PROCESANDO ORDEN: ${order.identifier}`);
 
         // 1. DESCUENTO DE STOCK
         const itemsToProcess = Array.isArray(order.items) ? order.items : JSON.parse(order.items || "[]");
@@ -233,7 +233,7 @@ const handleWebhook = async (req, res) => {
         try {
           if (whatsappService?.sendMessage) {
             const itemsString = itemsToProcess.map(item => `- ${item.title} (${item.quantity} uds.)`).join('\n');
-            const mensaje = `*¡PAGO CONFIRMADO EN FEDE CELL!* 📱✨\n\n` +
+            const mensaje = `*¡PAGO CONFIRMADO EN EQUITOP!* 📱✨\n\n` +
               `¡Hola ${order.name || 'Cliente'}!\n\n` +
               `Recibimos tu pago de *$${parseFloat(order.total).toLocaleString()}*.\n\n` +
               `*Detalles del pedido:*\n${itemsString}\n\n` +

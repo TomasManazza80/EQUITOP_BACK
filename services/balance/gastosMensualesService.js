@@ -56,7 +56,7 @@ const monthlyExpenseService = {
         const expense = await model.monthlyExpense.findByPk(id);
         if (!expense) throw new Error('Gasto no encontrado');
 
-        const message = `*FEDE CELL - Recordatorio de Pago* 🔔\n\n` +
+        const message = `*EQUITOP - Recordatorio de Pago* 🔔\n\n` +
             `Hola! Te recordamos que tienes un pago pendiente:\n\n` +
             `📦 *Concepto:* ${expense.nombre}\n` +
             `💰 *Monto:* $${parseFloat(expense.monto).toLocaleString()}\n` +

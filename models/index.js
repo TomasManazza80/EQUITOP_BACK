@@ -34,7 +34,7 @@ const reparacionFactory = require("../models/reparaciones/reparaciones");
 const reparacion = reparacionFactory(Sequelize);
 const Client = require("../models/clients/client");
 // ---------------------------------------------------------------------
-// Definición de Relaciones (Estructura FEDECELL)
+// Definición de Relaciones (Estructura EQUITOP)
 // ---------------------------------------------------------------------
 
 // Relación Usuario - Carrito

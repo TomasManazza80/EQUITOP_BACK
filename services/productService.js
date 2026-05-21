@@ -73,7 +73,8 @@ const productService = {
                         [Op.or]: [
                             { nombre: { [Op.iLike]: `%${word}%` } },
                             { marca: { [Op.iLike]: `%${word}%` } },
-                            { categoria: { [Op.iLike]: `%${word}%` } }
+                            { categoria: { [Op.iLike]: `%${word}%` } },
+                            { codigoBarras: { [Op.iLike]: `%${word}%` } }
                         ]
                     }))
                 };
@@ -168,7 +169,7 @@ const productService = {
                         `*Variante:* ${variantText}\n\n` +
                         `📉 *Stock Actual:* ${newStock}\n` +
                         `🔔 *Límite Configurado:* ${limiteAlerta}\n\n` +
-                        `_Mensaje automático del sistema FEDE CELL_`;
+                        `_Mensaje automático del sistema EQUITOP_`;
 
                     await qrService.sendMessage(adminPhone, mensaje);
                     console.log(`[STOCK_ALERT] WhatsApp enviado correctamente al administrador.`);

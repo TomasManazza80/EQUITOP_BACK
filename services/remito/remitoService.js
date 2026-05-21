@@ -40,7 +40,7 @@ const remitoService = {
             metodo_pago: (metodoPago || 'transferencia').toLowerCase(),
             categoria: 'PROVEEDORES',
             marca: remito.proveedor,
-            cliente: 'FEDECELL_ADMIN',
+            cliente: 'EQUITOP_ADMIN',
             cantidad: 1, // Campo requerido por el modelo
             fecha: new Date().toISOString().split('T')[0],
             origenDeVenta: 'LocalFisico'

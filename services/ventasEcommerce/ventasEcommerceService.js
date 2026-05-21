@@ -2,7 +2,7 @@ const { Dispatch } = require("../../models/index");
 
 const dispatchService = {
     /**
-     * NORMALIZACIÓN FEDECELL:
+     * NORMALIZACIÓN EQUITOP:
      * Convierte datos heterogéneos (Manual o Ecommerce) al formato del modelo.
      */
     normalizarEnvio(data) {
