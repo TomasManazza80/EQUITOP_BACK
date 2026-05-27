@@ -11,4 +11,8 @@ router.put('/products/:id', productController.updateProduct);
 router.put('/products/update-quantity/:id', productController.updateQuantityProduct);
 router.delete('/products/:id', productController.deleteProduct);
 
+// Likes
+router.post('/products/:id/like', productController.toggleLikeProduct);
+router.get('/products/likes/user/:email', productController.getUserLikes);
+
 module.exports = router;

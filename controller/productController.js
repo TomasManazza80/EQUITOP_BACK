@@ -73,6 +73,28 @@ const productController = {
       }
       res.status(500).json({ message: 'Error al eliminar', error: error.message });
     }
+  },
+
+  async toggleLikeProduct(req, res) {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: 'Email es requerido' });
+      
+      const result = await productService.toggleLikeProduct(req.params.id, email);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: 'Error toggling like', error: error.message });
+    }
+  },
+
+  async getUserLikes(req, res) {
+    try {
+      const email = req.params.email;
+      const likes = await productService.getUserLikes(email);
+      res.status(200).json(likes);
+    } catch (error) {
+      res.status(500).json({ message: 'Error getting user likes', error: error.message });
+    }
   }
 };
 

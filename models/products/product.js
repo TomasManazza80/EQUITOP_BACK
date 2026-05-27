@@ -37,6 +37,16 @@ const Product = Sequelize.define("product", {
     defaultValue: false,
     comment: "Si es true, este producto aplicara precio mayorista al superar la cantidad minima configurada globalmente"
   },
+  destacado: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: "Si es true, el producto aparecerá primero en el catálogo web y vistas principales"
+  },
+  likesCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    comment: "Contador de favoritos/likes para el producto"
+  },
   // Fechas Técnicas
   fechaActualizacionPrecio: {
     type: DataTypes.DATEONLY,

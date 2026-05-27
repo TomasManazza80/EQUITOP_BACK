@@ -1,4 +1,4 @@
-const { product } = require("../models/index");
+const { product, user } = require("../models/index");
 const { Op } = require("sequelize");
 
 // Función auxiliar para migrar datos planos a estructura de variantes si es necesario
@@ -80,6 +80,11 @@ const productService = {
                 };
             }
         }
+
+        options.order = [
+            ['destacado', 'DESC'],
+            ['id', 'DESC']
+        ];
 
         if (page) {
             const pageNumber = parseInt(page) || 1;
@@ -222,6 +227,49 @@ const productService = {
 
         return await item.destroy();
     },
+
+    async toggleLikeProduct(productId, userEmail) {
+        const productInstance = await product.findByPk(productId);
+        if (!productInstance) throw new Error('Producto no encontrado');
+
+        const userInstance = await user.findOne({ where: { email: userEmail } });
+        if (!userInstance) throw new Error('Usuario no encontrado');
+
+        // Verificar si el usuario ya le dio like
+        const hasLiked = await productInstance.hasFavoritedBy(userInstance);
+
+        if (hasLiked) {
+            // Quitar like
+            await productInstance.removeFavoritedBy(userInstance);
+            if (productInstance.likesCount > 0) {
+                productInstance.likesCount -= 1;
+            }
+            await productInstance.save();
+            return { message: 'Like removido', likesCount: productInstance.likesCount };
+        } else {
+            // Agregar like
+            await productInstance.addFavoritedBy(userInstance);
+            productInstance.likesCount += 1;
+            await productInstance.save();
+            return { message: 'Like agregado', likesCount: productInstance.likesCount };
+        }
+    },
+
+    async getUserLikes(userEmail) {
+        const userInstance = await user.findOne({ 
+            where: { email: userEmail },
+            include: [{
+                model: product,
+                as: 'Favorites',
+                attributes: ['id'] // Solo necesitamos los IDs para el frontend
+            }]
+        });
+
+        if (!userInstance) throw new Error('Usuario no encontrado');
+
+        // Devolvemos un array de IDs
+        return userInstance.Favorites.map(p => p.id);
+    }
 };
 
 module.exports = productService;

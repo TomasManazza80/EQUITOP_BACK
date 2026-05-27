@@ -62,6 +62,20 @@ cart.belongsToMany(product, {
 product.hasMany(ProductBought, { onDelete: "CASCADE" });
 ProductBought.belongsTo(product, { onDelete: "CASCADE" });
 
+// Relación Favoritos/Likes (Usuarios - Productos)
+user.belongsToMany(product, {
+  onDelete: "CASCADE",
+  through: "User_Favorites",
+  as: "Favorites",
+  foreignKey: "UserId"
+});
+product.belongsToMany(user, {
+  onDelete: "CASCADE",
+  through: "User_Favorites",
+  as: "FavoritedBy",
+  foreignKey: "ProductId"
+});
+
 // ---------------------------------------------------------------------
 // Exportación Unificada del Sistema
 // ---------------------------------------------------------------------
