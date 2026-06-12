@@ -11,14 +11,14 @@ const loginUser = async (req, res) => {
     } else {
       const response = await userService.login(value);
       if (response === "NOT FOUND!" || response === "Password wrong!") {
-        res.status(401).send(response);
+        res.status(401).send(response === "NOT FOUND!" ? "Usuario no encontrado!" : "Contraseña incorrecta!");
       } else {
         res.send(response);
       }
     }
   } catch (error) {
     console.log(error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send("Error interno del servidor");
   }
 };
 
@@ -26,13 +26,13 @@ const googleLogin = async (req, res) => {
   try {
     const { token } = req.body;
     if (!token) {
-      return res.status(400).send("Token is required");
+      return res.status(400).send("Se requiere un token");
     }
     const response = await userService.googleLogin(token);
     res.send(response);
   } catch (error) {
     console.error(error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send("Error interno del servidor");
   }
 };
 
@@ -61,7 +61,7 @@ const createUser = async (req, res) => {
 
   } catch (error) {
     console.log(error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send("Error interno del servidor");
   }
 };
 
@@ -72,7 +72,7 @@ const getRole = async (req, res) => {
     res.send(response);
   } catch (error) {
     console.log(error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send("Error interno del servidor");
   }
 };
 
@@ -95,7 +95,7 @@ const updateUser = async (req, res) => {
     }
   } catch (error) {
     console.log(error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send("Error interno del servidor");
   }
 };
 
@@ -105,7 +105,7 @@ const getAllUsers = async (req, res) => {
     res.send(response);
   } catch (error) {
     console.log(error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send("Error interno del servidor");
   }
 };
 
@@ -129,7 +129,7 @@ const updateRole = async (req, res) => {
       const response = await userService.updateUserRole(id, value.role);
       if (response === "NOT FOUND!") {
         console.log(`UPDATE_ROLE_FAILED: USER ${id} NOT FOUND`);
-        res.status(404).send("User not found");
+        res.status(404).send("Usuario no encontrado");
       } else {
         console.log(`UPDATE_ROLE_SUCCESS: USER ${id} ROLE -> ${value.role}`);
         res.status(200).send(response);
@@ -137,7 +137,7 @@ const updateRole = async (req, res) => {
     }
   } catch (error) {
     console.error("CRITICAL_ERROR IN updateRole CONTROLLER:", error);
-    res.status(500).send("Internal Server Error: " + error.message);
+    res.status(500).send("Error interno del servidor: " + error.message);
   }
 };
 
