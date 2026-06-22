@@ -269,6 +269,118 @@ const productService = {
 
         // Devolvemos un array de IDs
         return userInstance.Favorites.map(p => p.id);
+    },
+
+    // ---------------------------------------------------------------
+    // GESTIÓN DE CÓDIGOS DE BARRAS POR UNIDAD INDIVIDUAL
+    // ---------------------------------------------------------------
+
+    /**
+     * Agrega uno o más códigos de unidad a un producto.
+     * Cada código debe tener: { codigo, color, almacenamiento }
+     */
+    async addUnitBarcodes(productId, nuevosCodigos) {
+        const item = await product.findByPk(productId);
+        if (!item) throw new Error('Producto no encontrado');
+
+        let codigosActuales = item.codigosDeUnidades || [];
+        if (typeof codigosActuales === 'string') {
+            try { codigosActuales = JSON.parse(codigosActuales); } catch (e) { codigosActuales = []; }
+        }
+
+        const duplicados = [];
+        const agregados = [];
+
+        for (const nc of nuevosCodigos) {
+            const yaExiste = codigosActuales.find(c => c.codigo === nc.codigo);
+            if (yaExiste) {
+                duplicados.push(nc.codigo);
+            } else {
+                codigosActuales.push({
+                    codigo: nc.codigo,
+                    color: nc.color || null,
+                    almacenamiento: nc.almacenamiento || null
+                });
+                agregados.push(nc.codigo);
+            }
+        }
+
+        item.setDataValue('codigosDeUnidades', codigosActuales);
+        item.changed('codigosDeUnidades', true);
+        await item.save();
+
+        return { agregados, duplicados, total: codigosActuales.length };
+    },
+
+    /**
+     * Elimina un código de unidad específico de un producto.
+     */
+    async removeUnitBarcode(productId, codigo) {
+        const item = await product.findByPk(productId);
+        if (!item) throw new Error('Producto no encontrado');
+
+        let codigos = item.codigosDeUnidades || [];
+        if (typeof codigos === 'string') {
+            try { codigos = JSON.parse(codigos); } catch (e) { codigos = []; }
+        }
+
+        const antes = codigos.length;
+        codigos = codigos.filter(c => c.codigo !== codigo);
+
+        if (codigos.length === antes) throw new Error('Código de unidad no encontrado en este producto');
+
+        item.setDataValue('codigosDeUnidades', codigos);
+        item.changed('codigosDeUnidades', true);
+        await item.save();
+
+        return { eliminado: codigo, remaining: codigos.length };
+    },
+
+    /**
+     * Busca todos los productos que contienen un código de unidad determinado.
+     * Retorna un array con la info del producto + la entrada de la unidad.
+     */
+    async findProductsByUnitBarcode(codigo) {
+        // Necesitamos buscar en el campo JSON codigosDeUnidades.
+        // SQLite no tiene soporte nativo para buscar dentro de JSON, 
+        // así que cargamos todos y filtramos en memoria (el dataset suele ser pequeño).
+        const todos = await product.findAll({
+            attributes: ['id', 'nombre', 'marca', 'categoria', 'imagenes', 'variantes', 'codigosDeUnidades']
+        });
+
+        const resultados = [];
+        for (const p of todos) {
+            let codigos = p.codigosDeUnidades || [];
+            if (typeof codigos === 'string') {
+                try { codigos = JSON.parse(codigos); } catch (e) { codigos = []; }
+            }
+            const unidad = codigos.find(c => c.codigo === codigo);
+            if (unidad) {
+                // Buscamos la variante correspondiente
+                let variantes = p.variantes || [];
+                if (typeof variantes === 'string') {
+                    try { variantes = JSON.parse(variantes); } catch (e) { variantes = []; }
+                }
+                const variante = variantes.find(v =>
+                    (!unidad.color || v.color === unidad.color) &&
+                    (!unidad.almacenamiento || v.almacenamiento === unidad.almacenamiento)
+                ) || variantes[0] || null;
+
+                resultados.push({
+                    producto: {
+                        id: p.id,
+                        nombre: p.nombre,
+                        marca: p.marca,
+                        categoria: p.categoria,
+                        imagenes: p.imagenes
+                    },
+                    variante,
+                    unidad
+                });
+            }
+        }
+
+        return resultados;
     }
 };
 

@@ -18,6 +18,10 @@ const Product = Sequelize.define("product", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  subcategoria: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   origenDeVenta: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -31,6 +35,19 @@ const Product = Sequelize.define("product", {
   codigoBarras: {
     type: DataTypes.STRING,
     allowNull: true,
+  },
+  // Array de códigos de barras individuales por unidad física
+  // Formato: [{ codigo: "ABC123", color: "#1C1C1E", almacenamiento: "128GB" }, ...]
+  codigosDeUnidades: {
+    type: DataTypes.JSON,
+    defaultValue: [],
+    get() {
+      const rawValue = this.getDataValue('codigosDeUnidades');
+      if (typeof rawValue === 'string') {
+        try { return JSON.parse(rawValue); } catch (e) { return []; }
+      }
+      return rawValue || [];
+    }
   },
   aplicarMayoristaPorCantidad: {
     type: DataTypes.BOOLEAN,

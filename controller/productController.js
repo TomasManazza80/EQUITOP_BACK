@@ -95,6 +95,44 @@ const productController = {
     } catch (error) {
       res.status(500).json({ message: 'Error getting user likes', error: error.message });
     }
+  },
+
+  // ---------------------------------------------------------------
+  // GESTIÓN DE CÓDIGOS DE BARRAS POR UNIDAD INDIVIDUAL
+  // ---------------------------------------------------------------
+
+  async addUnitBarcodes(req, res) {
+    try {
+      const { id } = req.params;
+      const { codigos } = req.body; // array de { codigo, color, almacenamiento }
+      if (!Array.isArray(codigos) || codigos.length === 0) {
+        return res.status(400).json({ message: 'Se requiere un array "codigos" con al menos un elemento.' });
+      }
+      const result = await productService.addUnitBarcodes(id, codigos);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async removeUnitBarcode(req, res) {
+    try {
+      const { id, codigo } = req.params;
+      const result = await productService.removeUnitBarcode(id, decodeURIComponent(codigo));
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(404).json({ message: error.message });
+    }
+  },
+
+  async findByUnitBarcode(req, res) {
+    try {
+      const { codigo } = req.params;
+      const resultados = await productService.findProductsByUnitBarcode(decodeURIComponent(codigo));
+      res.status(200).json(resultados);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
   }
 };
 
