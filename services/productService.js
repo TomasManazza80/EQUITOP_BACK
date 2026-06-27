@@ -331,9 +331,38 @@ const productService = {
 
         item.setDataValue('codigosDeUnidades', codigos);
         item.changed('codigosDeUnidades', true);
+        return { eliminado: codigo, remaining: codigos.length };
+    },
+
+    /**
+     * Elimina un código de barras de la variante de un producto.
+     */
+    async removeVariantBarcode(productId, codigo) {
+        const item = await product.findByPk(productId);
+        if (!item) throw new Error('Producto no encontrado');
+
+        let variantes = item.variantes || [];
+        if (typeof variantes === 'string') {
+            try { variantes = JSON.parse(variantes); } catch (e) { variantes = []; }
+        }
+
+        let deleted = false;
+        const decodedCode = decodeURIComponent(codigo);
+        variantes = variantes.map(v => {
+            if (v.codigosBarras && v.codigosBarras.includes(decodedCode)) {
+                v.codigosBarras = v.codigosBarras.filter(c => c !== decodedCode);
+                deleted = true;
+            }
+            return v;
+        });
+
+        if (!deleted) throw new Error('Código de variante no encontrado en este producto');
+
+        item.setDataValue('variantes', variantes);
+        item.changed('variantes', true);
         await item.save();
 
-        return { eliminado: codigo, remaining: codigos.length };
+        return { eliminado: decodedCode };
     },
 
     /**

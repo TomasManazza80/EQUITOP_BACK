@@ -15,9 +15,10 @@ router.put('/products/:id', productController.updateProduct);
 router.put('/products/update-quantity/:id', productController.updateQuantityProduct);
 router.delete('/products/:id', productController.deleteProduct);
 
-// Códigos de barras por unidad individual
+// Códigos de barras por unidad individual y de variantes
 router.post('/products/:id/unit-barcodes', productController.addUnitBarcodes);
 router.delete('/products/:id/unit-barcodes/:codigo', productController.removeUnitBarcode);
+router.delete('/products/:id/variant-barcodes/:codigo', productController.removeVariantBarcode);
 
 // Likes
 router.post('/products/:id/like', productController.toggleLikeProduct);

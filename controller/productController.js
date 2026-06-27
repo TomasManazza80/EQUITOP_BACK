@@ -115,15 +115,25 @@ const productController = {
     }
   },
 
-  async removeUnitBarcode(req, res) {
-    try {
-      const { id, codigo } = req.params;
-      const result = await productService.removeUnitBarcode(id, decodeURIComponent(codigo));
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(404).json({ message: error.message });
-    }
-  },
+    async removeUnitBarcode(req, res) {
+      try {
+        const { id, codigo } = req.params;
+        const result = await productService.removeUnitBarcode(id, decodeURIComponent(codigo));
+        res.status(200).json(result);
+      } catch (error) {
+        res.status(404).json({ message: error.message });
+      }
+    },
+  
+    async removeVariantBarcode(req, res) {
+      try {
+        const { id, codigo } = req.params;
+        const result = await productService.removeVariantBarcode(id, decodeURIComponent(codigo));
+        res.status(200).json(result);
+      } catch (error) {
+        res.status(404).json({ message: error.message });
+      }
+    },
 
   async findByUnitBarcode(req, res) {
     try {

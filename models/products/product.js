@@ -36,6 +36,26 @@ const Product = Sequelize.define("product", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  cantidad: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  precioCompra: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.0,
+  },
+  precioVenta: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.0,
+  },
+  precioMayorista: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.0,
+  },
+  precioRevendedor: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.0,
+  },
   // Array de códigos de barras individuales por unidad física
   // Formato: [{ codigo: "ABC123", color: "#1C1C1E", almacenamiento: "128GB" }, ...]
   codigosDeUnidades: {
