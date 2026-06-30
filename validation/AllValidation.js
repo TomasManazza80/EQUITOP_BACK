@@ -20,11 +20,11 @@ const updateUser = Joi.object().keys({
   number: Joi.string().required(),
   email: Joi.string().email().required(),
   password: Joi.string().required(),
-  role: Joi.string().valid('admin', 'user', 'guest', 'tecnico', 'vendedor').required()
+  role: Joi.string().valid('admin', 'user', 'guest', 'tecnico', 'vendedor', 'diseñador').required()
 });
 
 const updateUserRole = Joi.object().keys({
-  role: Joi.string().valid('admin', 'user', 'guest', 'tecnico', 'vendedor').required()
+  role: Joi.string().valid('admin', 'user', 'guest', 'tecnico', 'vendedor', 'diseñador').required()
 });
 
 const createProduct = Joi.object().keys({
