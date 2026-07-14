@@ -33,6 +33,28 @@ const categoryController = {
             res.status(500).json({ message: error.message || 'Error al eliminar la categoría' });
         }
     },
+
+    async addSubcategory(req, res) {
+        try {
+            const { id } = req.params;
+            const { subcategoryName } = req.body;
+            const category = await categoryService.addSubcategory(id, subcategoryName);
+            res.status(200).json({ message: 'Subcategoría agregada', category });
+        } catch (error) {
+            res.status(500).json({ message: error.message || 'Error al agregar subcategoría' });
+        }
+    },
+
+    async removeSubcategory(req, res) {
+        try {
+            const { id } = req.params;
+            const { subcategoryName } = req.body;
+            const category = await categoryService.removeSubcategory(id, subcategoryName);
+            res.status(200).json({ message: 'Subcategoría eliminada', category });
+        } catch (error) {
+            res.status(500).json({ message: error.message || 'Error al eliminar subcategoría' });
+        }
+    },
 };
 
 export default categoryController;

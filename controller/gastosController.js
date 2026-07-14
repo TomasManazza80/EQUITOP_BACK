@@ -190,15 +190,16 @@ const gastosController = {
             const { configs } = req.body; // Expecting [{key, value, description}]
             console.log("UPDATE_GLOBAL_CONFIGS: Received payload", configs);
 
-            await GlobalConfig.sync(); // Ensure table exists
+            await GlobalConfig.sync({ alter: true }); // Ensure table exists
 
             for (const item of configs) {
+                const val = item.value != null ? item.value.toString() : '';
                 const [config, created] = await GlobalConfig.findOrCreate({
                     where: { key: item.key },
-                    defaults: { value: item.value.toString(), description: item.description }
+                    defaults: { value: val, description: item.description }
                 });
                 if (!created) {
-                    config.value = item.value.toString();
+                    config.value = val;
                     if (item.description) config.description = item.description;
                     await config.save();
                 }

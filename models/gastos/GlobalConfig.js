@@ -13,7 +13,7 @@ const GlobalConfig = sequelize.define("global_config", {
         unique: true,
     },
     value: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false,
     },
     description: {

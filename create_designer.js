@@ -8,7 +8,7 @@ async function createDesigner() {
     console.log("Database connected.");
 
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash("526354Avila", salt);
+    const hashedPassword = await bcrypt.hash("123456", salt);
 
     const newUser = await User.create({
       name: "RODRIGO AVILA",

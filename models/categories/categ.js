@@ -12,6 +12,11 @@ const category = Sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    subcategories: {
+      type: DataTypes.JSON,
+      defaultValue: [],
+      allowNull: false,
+    },
   },
   {
     timestamps: true,
