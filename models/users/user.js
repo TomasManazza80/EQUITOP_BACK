@@ -30,7 +30,7 @@ const user = Sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: 'user', // Valor por defecto
-      validate: { isIn: [['admin', 'user', 'guest', 'tecnico', 'vendedor', 'disenador']] } // Validación para asegurar que el rol sea uno de los valores permitidos
+      validate: { isIn: [['admin', 'user', 'guest', 'tecnico', 'vendedor', 'deniger']] } // Validación para asegurar que el rol sea uno de los valores permitidos
     }
   },
   {

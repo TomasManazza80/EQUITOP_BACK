@@ -112,7 +112,20 @@ const getAllUsers = async (req, res) => {
 
 
 
-const deleteUser = async (req, res) => { };
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const response = await userService.deleteUser(id);
+    if (response === "NOT FOUND!") {
+      res.status(404).send("Usuario no encontrado");
+    } else {
+      res.status(200).send(response);
+    }
+  } catch (error) {
+    console.error("Error in deleteUser:", error);
+    res.status(500).send("Error interno del servidor");
+  }
+};
 
 const updateRole = async (req, res) => {
   try {
