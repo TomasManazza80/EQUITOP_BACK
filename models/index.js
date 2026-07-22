@@ -21,6 +21,7 @@ const devolucion = require("../models/devolucionProductos/devolucioProductosMode
 const Remito = require("../models/remito/remiroModel.js");
 const RemitoItem = require("../models/remito/remiroModel.js");
 const Order = require("./orders/order");
+const PedidoWhatsapp = require("./orders/pedidoWhatsapp");
 const Category = require("./categories/categ");
 const Responsable = require("../models/balance/responsablesModel");
 const SuccessCase = require("../models/successCase/SuccessCase.js");
@@ -106,6 +107,7 @@ module.exports = {
   Dispatch,
   RecaudacionFinal,
   Order,
+  PedidoWhatsapp,
   GlobalConfig,
   Responsable,
   Client,

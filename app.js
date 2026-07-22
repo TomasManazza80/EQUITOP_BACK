@@ -37,6 +37,7 @@ import imagekitRouter from './routes/imagekitRoutes.js';
 import categoryRouter from './routes/categoryRoutes.js';
 import providerRouter from './routes/providerRoutes.js';
 import successCasesRouter from './routes/successCase/successCaseRoutes.js';
+import pedidoWhatsappRouter from './routes/pedidoWhatsappRoutes.js';
 
 // Servicios
 import cierreCajaService from './services/cierreCajaService.js';
@@ -109,6 +110,7 @@ app.use('/api/categories', categoryRouter);
 app.use('/', providerRouter);
 
 app.use('/success-cases', successCasesRouter);
+app.use('/api/pedidosWhatsapp', pedidoWhatsappRouter);
 
 // --- PROGRAMACIÓN DE TAREAS (CRON JOBS) ---
 // Cierre automático de caja a las 23:00 hrs (solo si AUTO_ACTIV está activado)
