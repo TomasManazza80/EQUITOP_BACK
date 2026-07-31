@@ -26,6 +26,31 @@ const pedidoWhatsappController = {
         }
     },
 
+    // Edit existing order
+    editarPedido: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { clienteNombre, clienteWhatsapp, productos, total } = req.body;
+
+            const pedido = await PedidoWhatsapp.findByPk(id);
+            if (!pedido) {
+                return res.status(404).json({ error: "Pedido no encontrado" });
+            }
+
+            pedido.clienteNombre = clienteNombre;
+            pedido.clienteWhatsapp = clienteWhatsapp;
+            pedido.productos = productos;
+            pedido.total = total;
+
+            await pedido.save();
+
+            return res.status(200).json({ message: "Pedido actualizado con éxito", pedido });
+        } catch (error) {
+            console.error("Error al actualizar pedido:", error);
+            return res.status(500).json({ error: "Error interno del servidor" });
+        }
+    },
+
     // Get all orders
     obtenerPedidos: async (req, res) => {
         try {
