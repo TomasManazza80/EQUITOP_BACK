@@ -1,4 +1,5 @@
 const Provider = require("../models/providers/provider");
+const Product = require("../models/products/product");
 
 const createProvider = async (req, res) => {
     try {
@@ -9,8 +10,10 @@ const createProvider = async (req, res) => {
             return res.status(400).send("El nombre es requerido");
         }
 
+        const formattedNombre = nombre.trim().toUpperCase();
+
         const newProvider = await Provider.create({
-            nombre,
+            nombre: formattedNombre,
             telefono,
             dni,
             direccion
@@ -29,7 +32,7 @@ const createProvider = async (req, res) => {
 const getAllProviders = async (req, res) => {
     try {
         const providers = await Provider.findAll({
-            order: [['createdAt', 'DESC']]
+            order: [['nombre', 'ASC']]
         });
         res.status(200).json(providers);
     } catch (error) {
@@ -46,13 +49,24 @@ const updateProvider = async (req, res) => {
         const provider = await Provider.findByPk(id);
         if (!provider) return res.status(404).send("Proveedor no encontrado");
 
-        await provider.update({ nombre, telefono, dni, direccion });
+        const oldNombre = provider.nombre;
+        const formattedNombre = nombre ? nombre.trim().toUpperCase() : oldNombre;
+
+        await provider.update({ nombre: formattedNombre, telefono, dni, direccion });
+
+        if (Product && oldNombre && formattedNombre && oldNombre !== formattedNombre) {
+            await Product.update(
+                { proveedor: formattedNombre },
+                { where: { proveedor: oldNombre } }
+            );
+        }
+
         res.status(200).json(provider);
     } catch (error) {
         console.error("Error updating provider:", error);
         res.status(500).send("Internal Server Error");
     }
-}
+};
 
 const deleteProvider = async (req, res) => {
     try {
