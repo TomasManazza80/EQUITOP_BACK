@@ -116,9 +116,22 @@ const productService = {
         const item = await product.findByPk(id);
         if (!item) throw new Error('Producto no encontrado');
 
-        // Si se actualizan variantes, asumimos actualización de precio
+        // Si se actualizan variantes, asumimos actualización de precio y forzamos update JSON
         if (updates.variantes) {
             updates.fechaActualizacionPrecio = new Date();
+            
+            const variantesNormalizadas = updates.variantes.map(v => ({
+                ...v,
+                stock: Number(v.stock) || 0,
+                precioAlPublico: Number(v.precioAlPublico) || 0,
+                costoDeCompra: Number(v.costoDeCompra) || 0,
+                precioMayorista: Number(v.precioMayorista) || 0,
+                precioRevendedor: Number(v.precioRevendedor) || 0
+            }));
+            
+            item.setDataValue('variantes', variantesNormalizadas);
+            item.changed('variantes', true); // Guardado explícito para JSON en SQLite
+            delete updates.variantes;
         }
 
         return await item.update(updates);
