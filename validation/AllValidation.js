@@ -5,11 +5,10 @@ const createUser = Joi.object().keys({
   name: Joi.string().required(),
   number: Joi.string().required(),
   email: Joi.string().email().required(),
-  password: Joi.string().required(),
-  recaptchaToken: Joi.string().required()
+  password: Joi.string().required()
 });
 
-const fatchUser = Joi.object().keys({
+const fetchUser = Joi.object().keys({
   email: Joi.string().email().required(),
   password: Joi.string().required(),
 });
@@ -45,4 +44,4 @@ const validateProduct = async (data) => {
   return { error: result.error };
 };
 
-module.exports = { createUser, fatchUser, updateUser, validateProduct, updateUserRole };
+module.exports = { createUser, fetchUser, updateUser, validateProduct, updateUserRole };

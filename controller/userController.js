@@ -4,7 +4,7 @@ const AllValidation = require("../validation/AllValidation");
 const loginUser = async (req, res) => {
   try {
     const userdata = req.body;
-    const { value, error } = AllValidation.fatchUser.validate(userdata);
+    const { value, error } = AllValidation.fetchUser.validate(userdata);
     if (error !== undefined) {
       console.log("error", error);
       res.status(400).send(error.details[0].message);
@@ -39,18 +39,11 @@ const googleLogin = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     const userdata = req.body;
-    // FIX: Se agrega un token falso para que pase la validación que aún lo requiere.
-    // La solución ideal es remover `recaptchaToken` del esquema en `validation/AllValidation.js`.
-    userdata.recaptchaToken = 'dummy-token-for-validation';
-
     const { value, error } = AllValidation.createUser.validate(userdata);
     if (error !== undefined) {
       console.log("error", error);
       return res.status(400).send(error.details[0].message);
     }
-
-    // Se elimina el token de recaptcha para que no intente guardarlo en la base de datos.
-    delete value.recaptchaToken;
 
     const user = await userService.createUser(value);
     if (!user) {
