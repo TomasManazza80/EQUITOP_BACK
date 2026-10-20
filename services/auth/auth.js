@@ -7,13 +7,15 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_should_be_long_and
 const SALT_ROUNDS = 10;
 const TOKEN_EXPIRATION = '1h'; // 1 hora para tokens de acceso (usar refresh tokens para sesiones largas)
 
+// Hash ficticio para prevenir ataques de temporización (timing attacks)
+const DUMMY_HASH = '$2b$10$wN9P32Wz7K.Z1rN8B0Kzqup8X7rS9eU7wG9qE4sW8vQ1rP9tN0y2C';
+
 const authHash = async (password) => {
   try {
-    const hash = await bcrypt.hash(password, 10);
-    console.log("Contraseña hasheada:", hash);
+    const hash = await bcrypt.hash(password, SALT_ROUNDS);
     return hash;
   } catch (error) {
-    console.log(error);
+    console.error("Error hashing password:", error.message);
     throw error;
   }
 };
@@ -72,5 +74,6 @@ module.exports = {
   authHash,
   createToken,
   compareHash,
-  verifyToken // Exportamos la nueva función
+  verifyToken,
+  DUMMY_HASH
 };

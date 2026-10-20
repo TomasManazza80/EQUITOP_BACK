@@ -1,8 +1,7 @@
-// BACK/services/userServices.js
-
+const crypto = require("crypto");
 const { where } = require("sequelize");
 const { model, Sequelize } = require("../models/index");
-const { authHash, createToken, compareHash } = require("./auth/auth");
+const { authHash, createToken, compareHash, DUMMY_HASH } = require("./auth/auth");
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -14,16 +13,18 @@ const googleLogin = async (token) => {
     });
     const payload = ticket.getPayload();
     const { email, name, sub } = payload;
+    const cleanEmail = String(email || '').trim().toLowerCase();
 
-    let user = await model.user.findOne({ where: { email } });
+    let user = await model.user.findOne({ where: { email: cleanEmail } });
 
     if (!user) {
-      // Create user if it doesn't exist
+      // Crear usuario con rol 'user' estrictamente y contraseña aleatoria criptográfica
+      const randomSecret = crypto.randomBytes(32).toString('hex');
       user = await model.user.create({
-        name: name || "Google User",
-        email: email,
-        number: "00000000", // Placeholder since Google doesn't provide number easily
-        password: await authHash(sub), // Using Google ID as a base for password
+        name: (name || "Google User").slice(0, 100),
+        email: cleanEmail,
+        number: "00000000",
+        password: await authHash(randomSecret),
         role: 'user'
       });
     }
@@ -35,56 +36,76 @@ const googleLogin = async (token) => {
       name: user.name
     };
     const internalToken = await createToken(tokenPayload);
-    return { token: internalToken, email: user.email };
+    return { token: internalToken, email: user.email, role: user.role, name: user.name };
   } catch (error) {
-    console.error("Error in googleLogin service:", error);
+    console.error("Error in googleLogin service:", error.message);
     throw error;
   }
 };
 
 const login = async (value) => {
   try {
+    const cleanEmail = String(value.email || '').trim().toLowerCase();
     const user = await model.user.findOne({
       where: {
-        email: value.email,
+        email: cleanEmail,
       },
     });
 
     if (!user) {
-      console.log("NOT FOUND!");
-      return "NOT FOUND!";
-    } else {
-      console.log("Contraseña ingresada:", value.password);
-      console.log("Contraseña almacenada:", user.password);
-      const isValidPassword = await compareHash(value.password, user.password);
-      if (!isValidPassword) {
-        console.log("La contraseña ingresada no coincide con la contraseña almacenada en la base de datos");
-        return "Password wrong!";
-      } else {
-        const RetriveUpdate = {
-          email: user.email,
-          id: user.id,
-          role: user.role,
-          name: user.name
-        };
-        const token = await createToken(RetriveUpdate);
-        return { token, email: user.email };
-      }
+      // Prevención de ataques de temporización (timing attacks):
+      // Ejecutamos compareHash contra DUMMY_HASH para que el tiempo de respuesta sea idéntico
+      await compareHash(value.password, DUMMY_HASH).catch(() => false);
+      return null;
     }
+
+    const isValidPassword = await compareHash(value.password, user.password);
+    if (!isValidPassword) {
+      return null;
+    }
+
+    const tokenPayload = {
+      email: user.email,
+      id: user.id,
+      role: user.role,
+      name: user.name
+    };
+    const token = await createToken(tokenPayload);
+    return { token, email: user.email, role: user.role, name: user.name };
   } catch (error) {
-    console.log(error);
+    console.error("Error in login service:", error.message);
     throw error;
   }
 };
 
 const createUser = async (data) => {
   try {
+    const cleanEmail = String(data.email || '').trim().toLowerCase();
+    
+    // Verificar si el correo ya existe para evitar errores no controlados de base de datos
+    const existing = await model.user.findOne({ where: { email: cleanEmail } });
+    if (existing) {
+      return { duplicate: true };
+    }
+
     const EncyPass = await authHash(data.password);
-    const userData = { ...data, password: EncyPass };
+    const userData = {
+      name: String(data.name || '').trim().slice(0, 100),
+      number: String(data.number || '').trim().slice(0, 30),
+      email: cleanEmail,
+      password: EncyPass,
+      role: 'user' // Hardcoded: Previene asignación masiva de roles privilegiados
+    };
+
     const FinalData = await model.user.create(userData);
-    return FinalData;
+    return {
+      id: FinalData.id,
+      name: FinalData.name,
+      email: FinalData.email,
+      role: FinalData.role
+    };
   } catch (error) {
-    console.log(error);
+    console.error("Error in createUser service:", error.message);
     throw error;
   }
 };
@@ -98,23 +119,33 @@ const updateUser = async (data) => {
     });
 
     if (!user) {
-      console.log("NOT FOUND!");
-      return "NOT FOUND!";
-    } else {
-      const hashedPassword = await authHash(data.password);
-      const updatedUser = {
-        name: data.name,
-        number: data.number,
-        email: data.email,
-        password: hashedPassword,
-        role: data.role,
-      };
-
-      await user.update(updatedUser);
-      return updatedUser;
+      return null;
     }
+
+    const updatedData = {
+      name: data.name ? String(data.name).trim().slice(0, 100) : user.name,
+      number: data.number ? String(data.number).trim().slice(0, 30) : user.number,
+      email: data.email ? String(data.email).trim().toLowerCase().slice(0, 150) : user.email,
+    };
+
+    if (data.password && typeof data.password === 'string' && data.password.trim().length >= 8) {
+      updatedData.password = await authHash(data.password);
+    }
+
+    if (data.role) {
+      updatedData.role = data.role;
+    }
+
+    await user.update(updatedData);
+    return {
+      id: user.id,
+      name: updatedData.name,
+      number: updatedData.number,
+      email: updatedData.email,
+      role: updatedData.role || user.role,
+    };
   } catch (error) {
-    console.log(error);
+    console.error("Error in updateUser service:", error.message);
     throw error;
   }
 };
@@ -127,42 +158,44 @@ const deleteUser = async (id) => {
       },
     });
     if (!user) {
-      console.log("NOT FOUND!");
-      return "NOT FOUND!";
+      return null;
     } else {
       return "User deleted successfully";
     }
   } catch (error) {
-    console.log(error);
+    console.error("Error in deleteUser:", error.message);
     throw error;
   }
 };
 
 const getRoleByEmail = async (email) => {
   try {
+    const cleanEmail = String(email || '').trim().toLowerCase();
     const user = await model.user.findOne({
       where: {
-        email,
+        email: cleanEmail,
       },
+      attributes: ['role'],
     });
     if (!user) {
-      console.log("NOT FOUND!");
-      return "NOT FOUND!";
+      return null;
     } else {
       return user.role;
     }
   } catch (error) {
-    console.log(error);
+    console.error("Error in getRoleByEmail:", error.message);
     throw error;
   }
 };
 
 const getAllUsers = async () => {
   try {
-    const users = await model.user.findAll();
+    const users = await model.user.findAll({
+      attributes: { exclude: ['password'] }
+    });
     return users;
   } catch (error) {
-    console.log(error);
+    console.error("Error in getAllUsers service:", error.message);
     throw error;
   }
 };

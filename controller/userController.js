@@ -6,33 +6,32 @@ const loginUser = async (req, res) => {
     const userdata = req.body;
     const { value, error } = AllValidation.fetchUser.validate(userdata);
     if (error !== undefined) {
-      console.log("error", error);
-      res.status(400).send(error.details[0].message);
-    } else {
-      const response = await userService.login(value);
-      if (response === "NOT FOUND!" || response === "Password wrong!") {
-        res.status(401).send(response === "NOT FOUND!" ? "Usuario no encontrado!" : "Contraseña incorrecta!");
-      } else {
-        res.send(response);
-      }
+      return res.status(400).json({ message: error.details[0].message });
     }
+    
+    const response = await userService.login(value);
+    if (!response) {
+      // Mensaje unificado para evitar enumeración de usuarios y extracción de datos
+      return res.status(401).json({ message: "Credenciales inválidas. Por favor verifique sus datos." });
+    }
+    return res.status(200).json(response);
   } catch (error) {
-    console.log(error);
-    res.status(500).send("Error interno del servidor");
+    console.error("Error in loginUser controller:", error.message);
+    res.status(500).json({ message: "Error interno del servidor" });
   }
 };
 
 const googleLogin = async (req, res) => {
   try {
     const { token } = req.body;
-    if (!token) {
-      return res.status(400).send("Se requiere un token");
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ message: "Se requiere un token válido" });
     }
     const response = await userService.googleLogin(token);
-    res.send(response);
+    return res.status(200).json(response);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error interno del servidor");
+    console.error("Error in googleLogin controller:", error.message);
+    res.status(401).json({ message: "Error de autenticación con Google" });
   }
 };
 
@@ -41,20 +40,22 @@ const createUser = async (req, res) => {
     const userdata = req.body;
     const { value, error } = AllValidation.createUser.validate(userdata);
     if (error !== undefined) {
-      console.log("error", error);
-      return res.status(400).send(error.details[0].message);
+      return res.status(400).json({ message: error.details[0].message });
     }
 
-    const user = await userService.createUser(value);
-    if (!user) {
-      res.sendStatus(401);
-    } else {
-      res.sendStatus(200);
+    const result = await userService.createUser(value);
+    if (result && result.duplicate) {
+      return res.status(409).json({ message: "El correo electrónico ya se encuentra registrado." });
     }
 
+    if (!result) {
+      return res.status(400).json({ message: "No fue posible registrar la cuenta." });
+    }
+
+    return res.status(201).json({ message: "Usuario registrado con éxito", user: result });
   } catch (error) {
-    console.log(error);
-    res.status(500).send("Error interno del servidor");
+    console.error("Error in createUser controller:", error.message);
+    res.status(500).json({ message: "Error interno del servidor" });
   }
 };
 
@@ -109,7 +110,7 @@ const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
     const response = await userService.deleteUser(id);
-    if (response === "NOT FOUND!") {
+    if (!response) {
       res.status(404).send("Usuario no encontrado");
     } else {
       res.status(200).send(response);
@@ -143,7 +144,7 @@ const updateRole = async (req, res) => {
     }
   } catch (error) {
     console.error("CRITICAL_ERROR IN updateRole CONTROLLER:", error);
-    res.status(500).send("Error interno del servidor: " + error.message);
+    res.status(500).send("Error interno del servidor");
   }
 };
 

@@ -42,19 +42,19 @@ const ventasEcommerceController = {
 
             // Iteramos sobre cada item del carrito para enriquecerlo con datos de la DB.
             for (const item of items) {
-                const searchId = item.productId || item.ProductId || item.id;
+                let searchId = item.productId || item.ProductId || item.id;
+                
                 if (!searchId) {
                     console.warn('Se encontró un item sin ID en la orden:', item);
                     continue; // Opcional: lanzar un error si todos los items deben tener ID.
                 }
 
+                if (typeof searchId === 'string' && searchId.includes('-')) {
+                    searchId = searchId.split('-')[0];
+                }
+
                 // 1. Usamos el ID para obtener el producto completo desde la base de datos.
                 // searchId ya fue extraído en la validación anterior.
-
-                if (!searchId) {
-                    console.warn('Se encontró un item sin ID en la orden:', item);
-                    continue;
-                }
 
                 const dbProduct = await productService.getProductById(searchId);
                 if (!dbProduct) {

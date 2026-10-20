@@ -1,30 +1,28 @@
 const Joi = require("joi");
 
 const createUser = Joi.object().keys({
-  id: Joi.number().optional(),
-  name: Joi.string().required(),
-  number: Joi.string().required(),
-  email: Joi.string().email().required(),
-  password: Joi.string().required()
-});
+  name: Joi.string().trim().min(2).max(100).required(),
+  number: Joi.string().trim().min(8).max(30).pattern(/^[0-9+\s()-]+$/).required(),
+  email: Joi.string().trim().lowercase().email({ tlds: { allow: false } }).max(150).required(),
+  password: Joi.string().min(8).max(128).required()
+}).options({ stripUnknown: true });
 
 const fetchUser = Joi.object().keys({
-  email: Joi.string().email().required(),
-  password: Joi.string().required(),
-});
+  email: Joi.string().trim().lowercase().email({ tlds: { allow: false } }).max(150).required(),
+  password: Joi.string().min(1).max(128).required(),
+}).options({ stripUnknown: true });
 
 const updateUser = Joi.object().keys({
-  id: Joi.number().optional(), // Este campo será opcional ya que se pasará como parámetro en la ruta
-  name: Joi.string().required(),
-  number: Joi.string().required(),
-  email: Joi.string().email().required(),
-  password: Joi.string().required(),
-  role: Joi.string().valid('admin', 'user', 'guest', 'tecnico', 'vendedor', 'deniger').required()
-});
+  name: Joi.string().trim().min(2).max(100).required(),
+  number: Joi.string().trim().min(8).max(30).pattern(/^[0-9+\s()-]+$/).required(),
+  email: Joi.string().trim().lowercase().email({ tlds: { allow: false } }).max(150).required(),
+  password: Joi.string().min(8).max(128).optional().allow(''),
+  role: Joi.string().valid('admin', 'user', 'guest', 'tecnico', 'vendedor', 'deniger').optional()
+}).options({ stripUnknown: true });
 
 const updateUserRole = Joi.object().keys({
   role: Joi.string().valid('admin', 'user', 'guest', 'tecnico', 'vendedor', 'deniger').required()
-});
+}).options({ stripUnknown: true });
 
 const createProduct = Joi.object().keys({
   nombre: Joi.string().required(),

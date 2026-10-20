@@ -60,6 +60,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.disable('x-powered-by');
 
 // Instancia Vexor
 const vexorInstance = new Vexor({
@@ -128,6 +129,7 @@ cron.schedule('00 23 * * *', async () => {
         console.error('[CRON_ERROR] Error al verificar AUTO_ACTIV:', err);
     }
 }, { timezone: "America/Argentina/Buenos_Aires" });
+console.log('⏰ [CRON_INIT] Cierre de caja programado automáticamente para las 23:00 hs (Zona horaria: America/Argentina/Buenos_Aires).');
 
 // Catch 404
 app.use((req, res, next) => {

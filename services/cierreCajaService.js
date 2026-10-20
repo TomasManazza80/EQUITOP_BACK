@@ -5,37 +5,35 @@ import { Op } from "sequelize";
 /**
  * Utility to format Date to YYYY-MM-DD in America/Argentina/Buenos_Aires
  */
-const getLocalDateString = (dateObj) => {
-    // We adjust to Argentina Time (UTC-3)
-    const offset = -3;
-    const utc = dateObj.getTime() + (dateObj.getTimezoneOffset() * 60000);
-    const arDate = new Date(utc + (3600000 * offset));
-    return arDate.toISOString().split('T')[0];
-};
-
 const parseSafeDate = (dateStr) => {
     if (!dateStr) return new Date();
     if (dateStr instanceof Date) return dateStr;
-    const normalized = dateStr.includes('T') ? dateStr : dateStr.replace(/-/g, '/');
+    const normalized = typeof dateStr === 'string' && dateStr.includes('T') ? dateStr : String(dateStr).replace(/-/g, '/');
     const d = new Date(normalized);
     return isNaN(d.getTime()) ? new Date() : d;
+};
+
+const getLocalDateString = (dateInput) => {
+    const d = parseSafeDate(dateInput);
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    return formatter.format(d);
 };
 
 const getLocalTimeString = (dateInput) => {
     try {
         const d = parseSafeDate(dateInput);
         if (isNaN(d.getTime())) return "00:00";
-        
-        // Argentina es UTC-3. Obtenemos la hora UTC y restamos 3.
-        let h = d.getUTCHours() - 3;
-        let m = d.getUTCMinutes();
-        
-        // Manejar el cambio de día si h < 0
-        if (h < 0) h += 24;
-        
-        const hStr = h.toString().padStart(2, '0');
-        const mStr = m.toString().padStart(2, '0');
-        return `${hStr}:${mStr}`;
+        return d.toLocaleTimeString('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
     } catch (e) {
         return "00:00";
     }
@@ -61,12 +59,7 @@ const cierreCajaService = {
             // 2. Fetch all pending data
             const [ventasEcom, egresos, todasLasEntradasBalance] = await Promise.all([
                 Dispatch.findAll({ 
-                    where: {
-                        [Op.and]: [
-                            sequelizeInstance.literal(`"Dispatch"."metadata_ecommerce"->>'cierreCaja' IS DISTINCT FROM 'true'`),
-                            { dispatchStatus: { [Op.ne]: 'RECIBIDO' } }
-                        ]
-                    }
+                    where: sequelizeInstance.literal(`"Dispatch"."metadata_ecommerce"->>'cierreCaja' IS DISTINCT FROM 'true'`)
                 }),
                 Egress.findAll(),
                 BalanceMensual.findAll({
@@ -78,7 +71,7 @@ const cierreCajaService = {
             const movementsByDate = {};
 
             const addMovement = (date, type, data) => {
-                const dStr = typeof date === 'string' ? date.split('T')[0] : getLocalDateString(date);
+                const dStr = getLocalDateString(date);
                 if (!movementsByDate[dStr]) movementsByDate[dStr] = { ecom: [], local: [], egresos: [], manual: [] };
                 movementsByDate[dStr][type].push(data);
             };
