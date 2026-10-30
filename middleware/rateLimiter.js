@@ -14,15 +14,29 @@ const loginLimiter = rateLimit({
   }
 });
 
+const jwt = require('jsonwebtoken');
+
 /**
  * Rate Limiter para la creación de usuarios (registro).
  * Mitiga ataques de inundación de base de datos, bots de spam y enumeración masiva.
+ * Permite a administradores autenticados dar de alta empleados sin ser bloqueados.
  */
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
-  max: 10, // Máximo 10 registros por IP por hora
+  max: 10, // Máximo 10 registros por IP por hora para usuarios anónimos
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.decode(token);
+        if (decoded && decoded.role === 'admin') return true;
+      }
+    } catch (e) {}
+    return false;
+  },
   message: {
     message: "Demasiadas solicitudes de registro desde esta conexión. Por favor intente más tarde."
   }

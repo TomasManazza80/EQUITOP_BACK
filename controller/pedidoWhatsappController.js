@@ -123,7 +123,8 @@ const pedidoWhatsappController = {
                                 vStock = Math.max(0, vStock - prod.cantidad);
                                 variantes[vIndex].stock = vStock.toString();
                             }
-                            dbProduct.variantes = variantes; // Sequelize JSON type
+                            dbProduct.setDataValue('variantes', variantes);
+                            dbProduct.changed('variantes', true);
                             await dbProduct.save();
                         } else {
                             let stockActual = parseInt(dbProduct.cantidad) || 0;
@@ -140,6 +141,22 @@ const pedidoWhatsappController = {
             return res.status(200).json({ message: "Pedido cobrado y stock descontado", pedido });
         } catch (error) {
             console.error("Error al cobrar pedido:", error);
+            return res.status(500).json({ error: "Error interno del servidor" });
+        }
+    },
+
+    // Eliminar pedido
+    eliminarPedido: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const pedido = await PedidoWhatsapp.findByPk(id);
+            if (!pedido) {
+                return res.status(404).json({ error: "Pedido no encontrado" });
+            }
+            await pedido.destroy();
+            return res.status(200).json({ message: "Pedido eliminado con éxito" });
+        } catch (error) {
+            console.error("Error al eliminar pedido:", error);
             return res.status(500).json({ error: "Error interno del servidor" });
         }
     }

@@ -195,6 +195,7 @@ const handleWebhook = async (req, res) => {
         const enrichedItems = await realizarRegistrosContables(order);
 
         // 3. INTEGRACIÓN LOGÍSTICA AUTOMÁTICA (BACKEND MAESTRO)
+        let trackingCode = `EQT-${Math.floor(100000 + Math.random() * 900000)}`;
         try {
           // Convertimos la orden a JSON y la enviamos al servicio de logística
           // FIX: Usamos los items enriquecidos (con variantes traducidas, precios de compra, etc.)
@@ -202,11 +203,15 @@ const handleWebhook = async (req, res) => {
             ...order.toJSON(),
             items: enrichedItems,
             total: order.total,
-            identifier: order.identifier
+            identifier: order.identifier,
+            tracking: trackingCode
           };
 
-          await dispatchService.createSingleDispatch(orderData);
-          console.log(`[LOGISTICA_SYNC] Despacho generado automáticamente para orden: ${order.identifier}`);
+          const dispatchCreated = await dispatchService.createSingleDispatch(orderData);
+          if (dispatchCreated && dispatchCreated.tracking) {
+            trackingCode = dispatchCreated.tracking;
+          }
+          console.log(`[LOGISTICA_SYNC] Despacho generado automáticamente para orden: ${order.identifier} (Tracking: ${trackingCode})`);
 
           // REGISTRO DE CLIENTE (SI NO EXISTE)
           try {
@@ -229,15 +234,20 @@ const handleWebhook = async (req, res) => {
           console.error('[LOGISTICA_ERROR] Fallo al crear despacho:', logisticsError.message);
         }
 
-        // 4. NOTIFICACIÓN WHATSAPP
+        // 4. NOTIFICACIÓN WHATSAPP CON CÓDIGO DE SEGUIMIENTO
         try {
           if (whatsappService?.sendMessage) {
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+            const trackingUrl = `${frontendUrl}/seguimiento?codigo=${trackingCode}`;
             const itemsString = itemsToProcess.map(item => `- ${item.title} (${item.quantity} uds.)`).join('\n');
             const mensaje = `*¡PAGO CONFIRMADO EN EQUITOP!* 📱✨\n\n` +
               `¡Hola ${order.name || 'Cliente'}!\n\n` +
-              `Recibimos tu pago de *$${parseFloat(order.total).toLocaleString()}*.\n\n` +
+              `Recibimos tu pago de *$${parseFloat(order.total).toLocaleString()}* con éxito.\n\n` +
+              `📦 *CÓDIGO DE SEGUIMIENTO:* \`${trackingCode}\`\n\n` +
+              `Podés consultar el estado de tu envío en cualquier momento desde nuestra web:\n` +
+              `👉 ${trackingUrl}\n\n` +
               `*Detalles del pedido:*\n${itemsString}\n\n` +
-              `Estamos preparando tus productos. ¡Gracias por tu compra!`;
+              `Estamos preparando tus productos en taller. ¡Muchas gracias por tu compra!`;
 
             await whatsappService.sendMessage(order.cellphone, mensaje);
           }
@@ -246,6 +256,7 @@ const handleWebhook = async (req, res) => {
         }
 
         order.status = 'paid';
+        order.dispatchStatus = 'PENDIENTE';
         await order.save();
       }
     }

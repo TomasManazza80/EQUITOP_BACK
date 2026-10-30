@@ -35,3 +35,14 @@ export const sendWhatsappMessage = async (req, res) => {
         res.status(500).json({ error: 'Error interno al enviar el mensaje' });
     }
 };
+
+export const disconnectWhatsapp = async (req, res) => {
+    try {
+        await whatsappService.disconnect();
+        await whatsappService.forceCleanup();
+        res.status(200).json({ message: 'Sesión desvinculada exitosamente' });
+    } catch (error) {
+        console.error('[WhatsApp] Error al desconectar:', error);
+        res.status(500).json({ error: 'Error al desvincular la sesión' });
+    }
+};

@@ -13,6 +13,8 @@ const dispatchService = {
             ? items.map(i => `${i.quantity}x ${i.title}`).join(', ')
             : (data.descripcion || "CONTENIDO_NO_ESPECIFICADO");
 
+        const trackingCode = data.tracking || `EQT-${Math.floor(100000 + Math.random() * 900000)}`;
+
         // Mapeamos los datos para que coincidan con el modelo Dispatch (name, address, items, etc.)
         return {
             name: data.name || data.cliente || "CLIENTE_S_N",
@@ -26,7 +28,7 @@ const dispatchService = {
             total: parseFloat(data.total || data.monto || 0),
             dispatchStatus: data.dispatchStatus || data.estado || "PENDIENTE",
             items: items, // IMPORTANTE: Guardamos el array de productos
-            tracking: data.tracking || null,
+            tracking: trackingCode,
             metadata_ecommerce: {
                 order_identifier: data.identifier || data.metadata_ecommerce?.order_identifier || null,
                 sync_date: new Date().toISOString(),

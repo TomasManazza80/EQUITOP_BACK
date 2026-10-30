@@ -75,13 +75,17 @@ const reportController = {
                 });
             });
 
-            // B. Procesar Ecommerce Abierto
+            // Fechas que ya cuentan con cierre formal archivado
+            const archivedDates = new Set(records.map(r => new Date(r.createdAt).toISOString().slice(0, 10)));
+
+            // B. Procesar Ecommerce Abierto (Solo días pendientes de cierre)
             openEcommerce.forEach(v => {
+                const itemDate = new Date(v.createdAt || v.fechaCompra || new Date()).toISOString().slice(0, 10);
+                if (archivedDates.has(itemDate)) return; // Ya consolidado en cierre archivado
+
                 const precioV = parseFloat(v.precio) || 0;
                 const cant = parseInt(v.cantidad) || 1;
                 const precioC = parseFloat(v.precioCompra) || 0;
-                // Importante: El monto neto real después de descuentos se calcularía si existiera descuentoGlobalAplicado, 
-                // pero seguiremos la lógica de cierreCajaDiario.jsx
                 const montoTotal = precioV * cant;
 
                 totalIngresos += montoTotal;
@@ -98,8 +102,11 @@ const reportController = {
                 });
             });
 
-            // C. Procesar Local Abierto
+            // C. Procesar Local Abierto (Solo días pendientes de cierre)
             openLocal.forEach(pago => {
+                const itemDate = new Date(pago.createdAt).toISOString().slice(0, 10);
+                if (archivedDates.has(itemDate)) return; // Ya consolidado en cierre archivado
+
                 const montoLocal = parseFloat(pago.montoTotal) || 0;
                 totalIngresos += montoLocal;
 
@@ -108,7 +115,7 @@ const reportController = {
                 items.forEach(item => {
                     const pC = parseFloat(item.precioCompra) || 0;
                     const c = parseInt(item.cantidad) || 1;
-                    const mV = parseFloat(item.monto) || 0; // monto unitario en PagoProducto
+                    const mV = parseFloat(item.monto) || 0;
                     costoLocal += pC * c;
 
                     productosVendidos.push({

@@ -9,6 +9,7 @@ router.post('/shipping-rates', gastosController.updateShippingRate);
 // Bank Rates
 router.get('/bank-rates', gastosController.getBankRates);
 router.post('/bank-rates', gastosController.createBankRate);
+router.put('/bank-rates/:id', gastosController.updateBankRate);
 router.delete('/bank-rates/:id', gastosController.deleteBankRate);
 
 // Price Updates

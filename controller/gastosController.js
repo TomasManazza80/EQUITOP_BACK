@@ -45,9 +45,28 @@ const gastosController = {
 
     createBankRate: async (req, res) => {
         try {
-            const { banco, cuotas, porcentajeInteres } = req.body;
-            const newRate = await BankRate.create({ banco, cuotas, porcentajeInteres });
+            const { banco, cuotas, porcentajeInteres, porcentajeAumento } = req.body;
+            const interes = porcentajeInteres !== undefined ? porcentajeInteres : (porcentajeAumento || 0);
+            const newRate = await BankRate.create({ banco, cuotas, porcentajeInteres: interes });
             res.json(newRate);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    updateBankRate: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { banco, cuotas, porcentajeInteres, porcentajeAumento } = req.body;
+            const rate = await BankRate.findByPk(id);
+            if (!rate) return res.status(404).json({ error: 'Regla de banco no encontrada' });
+
+            const interes = porcentajeInteres !== undefined ? porcentajeInteres : (porcentajeAumento !== undefined ? porcentajeAumento : rate.porcentajeInteres);
+            if (banco !== undefined) rate.banco = banco;
+            if (cuotas !== undefined) rate.cuotas = cuotas;
+            rate.porcentajeInteres = interes;
+            await rate.save();
+            res.json(rate);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

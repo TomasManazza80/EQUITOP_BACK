@@ -16,6 +16,9 @@ router.patch('/pedidos/:id/estado', ventasEcommerceController.updateStatus);
 // DELETE /ecommerce/pedidos/:id
 router.delete('/pedidos/:id', ventasEcommerceController.delete);
 
+// GET /ecommerce/seguimiento/:code (Consulta pública de seguimiento)
+router.get('/seguimiento/:code', ventasEcommerceController.getTrackingInfo);
+
 // Rutas de configuración para el carrito (Shipping, Fees, etc.)
 router.get('/shipping-rates', gastosController.getShippingRates);
 router.get('/bank-rates', gastosController.getBankRates);

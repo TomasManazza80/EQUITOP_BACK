@@ -1,4 +1,4 @@
-import { Dispatch, GlobalConfig, Client } from '../models/index.js';
+import { Dispatch, GlobalConfig, Client, Order } from '../models/index.js';
 import { Op } from 'sequelize';
 import productService from '../services/productService.js';
 
@@ -104,6 +104,9 @@ const ventasEcommerceController = {
             
             const finalTotal = calculatedSubtotal + (parseFloat(shippingCost) || 0) + totalFeeCalculated + shippingFee;
 
+            // Generamos o asignamos el código de seguimiento único
+            const trackingCode = req.body.tracking || `EQT-${Math.floor(100000 + Math.random() * 900000)}`;
+
             // 6. Creamos la orden en la base de datos con los datos enriquecidos y el total calculado.
             const newOrder = await Dispatch.create({
                 name,
@@ -117,6 +120,7 @@ const ventasEcommerceController = {
                 total: finalTotal,
                 items: enrichedItems,
                 dispatchStatus: 'PENDIENTE',
+                tracking: trackingCode,
                 metadata_ecommerce: metadata || {}
             });
 
@@ -226,6 +230,96 @@ const ventasEcommerceController = {
             res.status(204).send();
         } catch (error) {
             res.status(500).json({ message: error.message });
+        }
+    },
+
+    /**
+     * Consulta pública del estado de un envío por código de seguimiento o ID de orden.
+     */
+    async getTrackingInfo(req, res) {
+        try {
+            const { code } = req.params;
+            if (!code || !code.trim()) {
+                return res.status(400).json({ message: 'Código de seguimiento requerido.' });
+            }
+
+            const cleanCode = code.trim().toUpperCase();
+
+            // Buscar en tabla Dispatch
+            const dispatches = await Dispatch.findAll({
+                order: [['createdAt', 'DESC']]
+            });
+
+            let found = dispatches.find(d => 
+                (d.tracking && d.tracking.toUpperCase() === cleanCode) ||
+                String(d.id) === cleanCode ||
+                `EQT-${d.id}`.toUpperCase() === cleanCode ||
+                (d.metadata_ecommerce && d.metadata_ecommerce.order_identifier && d.metadata_ecommerce.order_identifier.toUpperCase() === cleanCode)
+            );
+
+            // Si no se encuentra en Dispatch, buscar en Order
+            if (!found && Order) {
+                const orders = await Order.findAll({
+                    order: [['createdAt', 'DESC']]
+                });
+                const foundOrder = orders.find(o =>
+                    String(o.id) === cleanCode ||
+                    `EQT-${o.id}`.toUpperCase() === cleanCode ||
+                    (o.identifier && o.identifier.toUpperCase() === cleanCode)
+                );
+
+                if (foundOrder) {
+                    found = {
+                        id: foundOrder.id,
+                        name: foundOrder.name,
+                        cellphone: foundOrder.cellphone,
+                        address: foundOrder.address,
+                        city: foundOrder.city,
+                        province: foundOrder.province,
+                        postalCode: foundOrder.postalCode,
+                        shippingOption: foundOrder.shippingOption,
+                        shippingCost: foundOrder.shippingCost,
+                        total: foundOrder.total,
+                        dispatchStatus: foundOrder.dispatchStatus || 'PENDIENTE',
+                        tracking: `EQT-${foundOrder.id}`,
+                        items: foundOrder.items,
+                        createdAt: foundOrder.createdAt,
+                        updatedAt: foundOrder.updatedAt
+                    };
+                }
+            }
+
+            if (!found) {
+                return res.status(404).json({ message: 'No se encontró ningún paquete o envío con ese código de seguimiento.' });
+            }
+
+            let parsedItems = found.items;
+            if (typeof parsedItems === 'string') {
+                try {
+                    parsedItems = JSON.parse(parsedItems);
+                } catch (e) {
+                    parsedItems = [];
+                }
+            }
+
+            return res.status(200).json({
+                tracking: found.tracking || `EQT-${found.id}`,
+                id: found.id,
+                name: found.name || 'Cliente',
+                city: found.city || '',
+                province: found.province || '',
+                address: found.address || '',
+                shippingOption: found.shippingOption || 'STANDARD',
+                shippingCost: parseFloat(found.shippingCost || 0),
+                total: parseFloat(found.total || 0),
+                dispatchStatus: found.dispatchStatus || 'PENDIENTE',
+                items: Array.isArray(parsedItems) ? parsedItems : [],
+                createdAt: found.createdAt,
+                updatedAt: found.updatedAt
+            });
+        } catch (error) {
+            console.error('[TRACKING_SEARCH_ERROR]', error);
+            return res.status(500).json({ message: 'Error interno al consultar el seguimiento', error: error.message });
         }
     }
 };

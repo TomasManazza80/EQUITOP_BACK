@@ -4,6 +4,7 @@ import * as whatsappController from '../../controller/QrController/QrController.
 
 router.get('/status', whatsappController.getWhatsappStatus);
 router.post('/restart', whatsappController.restartWhatsapp);
+router.post('/disconnect', whatsappController.disconnectWhatsapp);
 router.post('/send-message', whatsappController.sendWhatsappMessage);
 
 export default router;

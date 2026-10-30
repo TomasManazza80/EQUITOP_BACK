@@ -107,6 +107,14 @@ const cierreCajaService = {
             const todayStr = getLocalDateString(new Date());
             const processedDates = [];
 
+            // Si forceToday está activo (cron 23:00 o manual) y hoy no tuvo movimientos, se crea el cierre con balance $0
+            if (forceToday && !movementsByDate[todayStr]) {
+                movementsByDate[todayStr] = { ecom: [], local: [], egresos: [], manual: [] };
+                if (!datesFound.includes(todayStr)) {
+                    datesFound.push(todayStr);
+                }
+            }
+
             // 4. Iterate dates and close
             for (const dStr of datesFound) {
                 // Lógica de coincidencia con Frontend:
@@ -261,6 +269,30 @@ const cierreCajaService = {
             }
         });
 
+        // Detalle de Egresos
+        const detallesEgresos = egresos.map(e => ({
+            detalle: (e.detalle || e.motivo || 'EXTRACCIÓN DE CAJA').toUpperCase(),
+            monto: parseFloat(e.monto || 0),
+            medio: (e.medio || 'efectivo').toLowerCase(),
+            hora: getLocalTimeString(e.createdAt || e.fecha || new Date()),
+            responsable: e.responsable || 'S/D'
+        }));
+
+        egresos.forEach(e => {
+            const m = parseFloat(e.monto || 0);
+            productosFormatted.push({
+                nombreProducto: (e.detalle || e.motivo || 'EXTRACCIÓN DE CAJA').toUpperCase(),
+                cantidadComprada: 1,
+                monto: -Math.abs(m),
+                canal: 'LOCAL',
+                origen: 'EGRESO',
+                medioPago: e.medio || 'efectivo',
+                fecha: dateStr,
+                esEgreso: true,
+                hora: getLocalTimeString(e.createdAt || e.fecha || new Date())
+            });
+        });
+
         // 5. Save RecaudacionFinal
         await RecaudacionFinal.create({
             mes: new Date(dateStr + 'T12:00:00').toLocaleString('es-AR', { month: 'long', year: 'numeric' }).toUpperCase(),
@@ -275,8 +307,9 @@ const cierreCajaService = {
                 Balance_Neto_Rango: totalVentasBrutas - totalEgresosTotal,
                 Ventas_Registradas_Hoy: totalVentasBrutas,
                 Extracciones_en_Rango: totalEgresosTotal,
-                Operaciones_en_Rango: ecom.length + local.length + manual.length,
-                metodosPago
+                Operaciones_en_Rango: ecom.length + local.length + manual.length + egresos.length,
+                metodosPago,
+                detallesEgresos
             }
         });
 

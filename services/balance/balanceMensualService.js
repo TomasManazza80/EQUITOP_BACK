@@ -145,16 +145,16 @@ const balanceMensualService = {
         }
     },
 
-    async deleteEntry(id) {
+    async deleteEntry(id, shouldReturnStock = true) {
         try {
             const entry = await model.balanceMensual.findByPk(id);
             if (!entry) throw new Error('Entrada de balance no encontrada');
 
             const idTransaccion = entry.id_transaccion;
-            let shouldRestore = true;
+            let shouldRestore = shouldReturnStock !== false;
 
             // Si tiene id_transaccion, verificamos si quedan otros registros de la misma transacción
-            if (idTransaccion) {
+            if (shouldRestore && idTransaccion) {
                 // Importamos Op si no está disponible (generalmente se importa al inicio del archivo)
                 const { Op } = require("sequelize");
                 const count = await model.balanceMensual.count({

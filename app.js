@@ -38,6 +38,7 @@ import categoryRouter from './routes/categoryRoutes.js';
 import providerRouter from './routes/providerRoutes.js';
 import successCasesRouter from './routes/successCase/successCaseRoutes.js';
 import pedidoWhatsappRouter from './routes/pedidoWhatsappRoutes.js';
+import wholesaleConfigRouter from './routes/wholesaleConfigRoutes.js';
 
 // Servicios
 import cierreCajaService from './services/cierreCajaService.js';
@@ -112,21 +113,16 @@ app.use('/', providerRouter);
 
 app.use('/success-cases', successCasesRouter);
 app.use('/api/pedidosWhatsapp', pedidoWhatsappRouter);
+app.use('/api/wholesale-config', wholesaleConfigRouter);
 
 // --- PROGRAMACIÓN DE TAREAS (CRON JOBS) ---
-// Cierre automático de caja a las 23:00 hrs (solo si AUTO_ACTIV está activado)
+// Cierre automático de caja a las 23:00 hrs
 cron.schedule('00 23 * * *', async () => {
     try {
-        const { GlobalConfig } = await import('./models/index.js');
-        const autoActivo = await GlobalConfig.findOne({ where: { key: 'equitop_auto_cierre_activado' } });
-        if (autoActivo?.value === 'true') {
-            console.log('[CRON] AUTO_ACTIV detectado, ejecutando cierre de caja...');
-            await cierreCajaService.ejecutarCierreAutomatico({ forceToday: true });
-        } else {
-            console.log('[CRON] AUTO_ACTIV no está activado, se omite el cierre automático.');
-        }
+        console.log('⏰ [CRON] 23:00 hs alcanzadas. Ejecutando cierre de caja diario consolidado...');
+        await cierreCajaService.ejecutarCierreAutomatico({ forceToday: true });
     } catch (err) {
-        console.error('[CRON_ERROR] Error al verificar AUTO_ACTIV:', err);
+        console.error('[CRON_ERROR] Error al ejecutar cierre automático a las 23:00:', err);
     }
 }, { timezone: "America/Argentina/Buenos_Aires" });
 console.log('⏰ [CRON_INIT] Cierre de caja programado automáticamente para las 23:00 hs (Zona horaria: America/Argentina/Buenos_Aires).');

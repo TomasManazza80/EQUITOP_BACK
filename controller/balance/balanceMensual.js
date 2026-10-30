@@ -55,7 +55,8 @@ const balanceMensualController = {
 
     async deleteEntry(req, res) {
         try {
-            await balanceMensualService.deleteEntry(req.params.id);
+            const shouldReturnStock = req.body?.shouldReturnStock !== false;
+            await balanceMensualService.deleteEntry(req.params.id, shouldReturnStock);
             res.status(204).send();
         } catch (error) {
             res.status(500).json({ message: 'Error al eliminar registro' });
