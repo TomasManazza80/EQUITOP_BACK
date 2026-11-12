@@ -103,33 +103,29 @@ const Product = Sequelize.define("product", {
   imagenes: {
     type: DataTypes.JSON, // Almacena array de URLs
     defaultValue: [],
+    get() {
+      const rawValue = this.getDataValue('imagenes');
+      if (typeof rawValue === 'string') {
+        try { return JSON.parse(rawValue); } catch (e) { return rawValue ? [rawValue] : []; }
+      }
+      return Array.isArray(rawValue) ? rawValue : [];
+    }
   },
   variantes: {
     type: DataTypes.JSON, // [{ color, almacenamiento, stock, precioAlPublico, precioRevendedor, precioMayorista, costoDeCompra }]
     defaultValue: [],
-    validate: {
-      validarEstructura(value) {
-        if (!Array.isArray(value)) {
-          throw new Error("El campo 'variantes' debe ser un arreglo.");
-        }
-        value.forEach(v => {
-          if (!v.color || !v.almacenamiento || v.stock === undefined || v.precioAlPublico === undefined || v.precioRevendedor === undefined || v.precioMayorista === undefined || v.costoDeCompra === undefined) {
-            throw new Error("Cada variante debe contener: color, almacenamiento, stock, precioAlPublico, precioRevendedor, precioMayorista y costoDeCompra.");
-          }
-        });
-      }
-    },
     get() {
       const rawValue = this.getDataValue('variantes');
       // Protección contra DBs que devuelven JSON como string (ej: SQLite antiguo)
       if (typeof rawValue === 'string') {
         try {
-          return JSON.parse(rawValue);
+          const parsed = JSON.parse(rawValue);
+          return Array.isArray(parsed) ? parsed : [];
         } catch (e) {
           return [];
         }
       }
-      return rawValue || [];
+      return Array.isArray(rawValue) ? rawValue : [];
     }
   },
   creadoPor: {

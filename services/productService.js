@@ -4,6 +4,9 @@ const { Op } = require("sequelize");
 // Función auxiliar para migrar datos planos a estructura de variantes si es necesario
 const normalizarProducto = (data) => {
     let variantes = data.variantes;
+    if (typeof variantes === 'string') {
+        try { variantes = JSON.parse(variantes); } catch (e) { variantes = []; }
+    }
 
     // Si no hay variantes, creamos una por defecto con los datos planos
     if (!variantes || !Array.isArray(variantes) || variantes.length === 0) {
@@ -17,15 +20,23 @@ const normalizarProducto = (data) => {
             precioRevendedor: Number(data.precioRevendedor) || 0
         }];
     } else {
-        // Sanitización: Aseguramos que los valores numéricos sean realmente números
+        // Sanitización: Aseguramos valores por defecto si faltan atributos
         variantes = variantes.map(v => ({
             ...v,
+            color: v.color || 'Unico',
+            almacenamiento: v.almacenamiento || 'Unico',
             stock: Number(v.stock) || 0,
             precioAlPublico: Number(v.precioAlPublico) || 0,
             costoDeCompra: Number(v.costoDeCompra) || 0,
             precioMayorista: Number(v.precioMayorista) || 0,
             precioRevendedor: Number(v.precioRevendedor) || 0
         }));
+    }
+
+    if (typeof data.imagenes === 'string') {
+        try { data.imagenes = JSON.parse(data.imagenes); } catch (e) { data.imagenes = data.imagenes ? [data.imagenes] : []; }
+    } else if (data.imagenes !== undefined && !Array.isArray(data.imagenes)) {
+        data.imagenes = [];
     }
 
     // Actualizamos las variantes en el objeto data
@@ -117,11 +128,13 @@ const productService = {
         if (!item) throw new Error('Producto no encontrado');
 
         // Si se actualizan variantes, asumimos actualización de precio y forzamos update JSON
-        if (updates.variantes) {
+        if (Array.isArray(updates.variantes)) {
             updates.fechaActualizacionPrecio = new Date();
             
             const variantesNormalizadas = updates.variantes.map(v => ({
                 ...v,
+                color: v.color || 'Unico',
+                almacenamiento: v.almacenamiento || 'Unico',
                 stock: Number(v.stock) || 0,
                 precioAlPublico: Number(v.precioAlPublico) || 0,
                 costoDeCompra: Number(v.costoDeCompra) || 0,
