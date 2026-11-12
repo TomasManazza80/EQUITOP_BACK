@@ -1,4 +1,5 @@
 import { Dispatch, GlobalConfig, Client, Order } from '../models/index.js';
+import WholesaleConfig from '../models/config/wholesaleConfig.js';
 import { Op } from 'sequelize';
 import productService from '../services/productService.js';
 
@@ -36,66 +37,102 @@ const ventasEcommerceController = {
             let calculatedSubtotal = 0;
             let totalFeeCalculated = 0;
 
-            // Obtener configuración global de fee por si acaso
-            const mpFeeConfig = await GlobalConfig.findOne({ where: { key: 'mp_fee' } });
+            // Obtener configuración global de fee y reglas mayoristas
+            const [mpFeeConfig, minTotalConf, minQtyConf, wsConfig] = await Promise.all([
+                GlobalConfig.findOne({ where: { key: 'mp_fee' } }),
+                GlobalConfig.findOne({ where: { key: 'wholesale_cart_total_min' } }),
+                GlobalConfig.findOne({ where: { key: 'wholesale_product_qty_min' } }),
+                WholesaleConfig.findOne().catch(() => null)
+            ]);
             const globalFeePercentage = mpFeeConfig ? parseFloat(mpFeeConfig.value) : 0;
+            const minCartTotal = minTotalConf
+                ? parseFloat(minTotalConf.value) || 0
+                : parseFloat(wsConfig?.cartTotalMin) || 0;
+            const minProductQty = minQtyConf
+                ? parseInt(minQtyConf.value, 10) || 0
+                : parseInt(wsConfig?.productQtyMin, 10) || 0;
 
-            // Iteramos sobre cada item del carrito para enriquecerlo con datos de la DB.
+            const preloadedItems = [];
+            let wholesaleSubtotal = 0;
+            let totalUnits = 0;
+
             for (const item of items) {
                 let searchId = item.productId || item.ProductId || item.id;
-                
                 if (!searchId) {
                     console.warn('Se encontró un item sin ID en la orden:', item);
-                    continue; // Opcional: lanzar un error si todos los items deben tener ID.
+                    continue;
                 }
-
                 if (typeof searchId === 'string' && searchId.includes('-')) {
                     searchId = searchId.split('-')[0];
                 }
-
-                // 1. Usamos el ID para obtener el producto completo desde la base de datos.
-                // searchId ya fue extraído en la validación anterior.
 
                 const dbProduct = await productService.getProductById(searchId);
                 if (!dbProduct) {
                     return res.status(404).json({ message: `El producto con ID ${searchId} no fue encontrado.` });
                 }
 
-                // 2. Buscamos la variante específica (color, almacenamiento) para obtener el precio y costo correctos.
                 const productVariants = Array.isArray(dbProduct.variantes) ? dbProduct.variantes : [];
-                const variantIndex = productService.findVariantIndex(productVariants, item.color, item.almacenamiento || item.storage);
-
+                let variantIndex = productService.findVariantIndex(productVariants, item.color, item.almacenamiento || item.storage);
+                if (variantIndex === -1 && productVariants.length > 0) {
+                    variantIndex = 0;
+                }
                 if (variantIndex === -1) {
                     return res.status(404).json({ message: `La variante para '${dbProduct.nombre}' no fue encontrada.` });
                 }
                 const selectedVariant = productVariants[variantIndex];
+                const quantity = parseInt(item.quantity, 10) || 1;
+                const retailPrice = parseFloat(selectedVariant.precioAlPublico || dbProduct.precioVenta) || 0;
+                const wholesalePrice = parseFloat(selectedVariant.precioMayorista || dbProduct.precioMayorista || retailPrice) || 0;
 
-                // 3. Extraemos los datos autoritativos (precio, costo) de la variante encontrada.
-                const unitPrice = parseFloat(selectedVariant.precioAlPublico) || 0;
+                wholesaleSubtotal += wholesalePrice * quantity;
+                totalUnits += quantity;
+
+                preloadedItems.push({ item, dbProduct, selectedVariant, quantity, retailPrice, wholesalePrice });
+            }
+
+            const meetsCartTotalCondition = minCartTotal > 0 && wholesaleSubtotal >= minCartTotal;
+            const meetsGlobalUnitsCondition = minCartTotal === 0 && minProductQty > 0 && totalUnits >= minProductQty;
+            const noAdminRestrictions = minCartTotal === 0 && minProductQty === 0;
+
+            for (const entry of preloadedItems) {
+                const { item, dbProduct, selectedVariant, quantity, retailPrice, wholesalePrice } = entry;
+                const isQtyWholesale = Boolean(dbProduct.aplicarMayoristaPorCantidad && minProductQty > 0 && quantity >= minProductQty);
+                const itemQualifiesForWholesale = meetsCartTotalCondition || meetsGlobalUnitsCondition || isQtyWholesale || noAdminRestrictions;
+
+                const isWholesaleOrigin = String(item.origenDeVenta || '').toLowerCase().includes('revendedor');
+                const sentWholesalePrice =
+                    wholesalePrice > 0 &&
+                    wholesalePrice < retailPrice &&
+                    Math.abs(Number(item.unit_price) - wholesalePrice) < Math.abs(Number(item.unit_price) - retailPrice);
+                const isRequestedAsWholesale = isWholesaleOrigin || sentWholesalePrice;
+
+                if (isRequestedAsWholesale && !itemQualifiesForWholesale) {
+                    return res.status(400).json({
+                        message: 'No se cumplen los requisitos mínimos configurados por el administrador para comprar a precio mayorista.'
+                    });
+                }
+
+                const unitPrice = (isRequestedAsWholesale && itemQualifiesForWholesale) ? wholesalePrice : retailPrice;
                 const costPrice = parseFloat(selectedVariant.costoDeCompra) || 0;
-                const quantity = parseInt(item.quantity) || 1;
 
-                // 4. Construimos el objeto del item enriquecido que se guardará en el JSON de la orden.
                 enrichedItems.push({
                     productId: dbProduct.id,
                     title: dbProduct.nombre,
                     quantity: quantity,
                     unit_price: unitPrice,
-                    cost_price: costPrice, // Guardamos el costo para cálculos de ganancia futuros.
+                    cost_price: costPrice,
                     color: selectedVariant.color,
                     almacenamiento: selectedVariant.almacenamiento || selectedVariant.storage,
+                    origenDeVenta: item.origenDeVenta || 'ecommerce',
                     image: Array.isArray(dbProduct.imagenes) && dbProduct.imagenes.length > 0 ? dbProduct.imagenes[0] : null
                 });
 
-                // 5. Acumulamos el subtotal calculado en el servidor.
                 calculatedSubtotal += unitPrice * quantity;
 
-                // 6. Calculamos la comisión específica para este producto
-                // Si dbProduct.tasaEcommerce es null, usa globalFeePercentage. Si es número (incluido 0), usa ese.
-                const productFeeRate = (dbProduct.tasaEcommerce !== null && dbProduct.tasaEcommerce !== undefined) 
-                                        ? parseFloat(dbProduct.tasaEcommerce) 
-                                        : globalFeePercentage;
-                
+                const productFeeRate = (dbProduct.tasaEcommerce !== null && dbProduct.tasaEcommerce !== undefined)
+                    ? parseFloat(dbProduct.tasaEcommerce)
+                    : globalFeePercentage;
+
                 totalFeeCalculated += (unitPrice * quantity) * (productFeeRate / 100);
             }
 

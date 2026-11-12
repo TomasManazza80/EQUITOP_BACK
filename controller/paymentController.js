@@ -1,6 +1,7 @@
 const vexor = require('vexor');
 const dotenv = require('dotenv');
 const { Order, PagoProducto, GlobalConfig, Client } = require('../models/index');
+const WholesaleConfig = require('../models/config/wholesaleConfig');
 const productService = require('../services/productService');
 const balanceMensualService = require('../services/balance/balanceMensualService');
 const paymentService = require('../payment/paymentService');
@@ -57,12 +58,97 @@ const createPayment = async (req, res) => {
   
 
   try {
-    const vexorItems = items.map(item => ({
-      title: item.title,
-      unit_price: Number(item.unit_price),
-      quantity: Number(item.quantity),
-      description: item.title
-    }));
+    const [mpFeeConfig, minTotalConf, minQtyConf, wsConfig] = await Promise.all([
+      GlobalConfig.findOne({ where: { key: 'mp_fee' } }),
+      GlobalConfig.findOne({ where: { key: 'wholesale_cart_total_min' } }),
+      GlobalConfig.findOne({ where: { key: 'wholesale_product_qty_min' } }),
+      WholesaleConfig.findOne().catch(() => null)
+    ]);
+
+    const feePercentage = mpFeeConfig ? parseFloat(mpFeeConfig.value) : 0;
+    const minCartTotal = minTotalConf
+      ? parseFloat(minTotalConf.value) || 0
+      : parseFloat(wsConfig?.cartTotalMin) || 0;
+    const minProductQty = minQtyConf
+      ? parseInt(minQtyConf.value, 10) || 0
+      : parseInt(wsConfig?.productQtyMin, 10) || 0;
+
+    // Cargar productos de la base de datos para validar precios y condiciones mayoristas
+    const resolvedItems = [];
+    let wholesaleSubtotal = 0;
+    let totalUnits = 0;
+
+    for (const item of items) {
+      const rawId = (item.productId || item.ProductId || item.id || '').toString().split('-')[0];
+      const product = rawId ? await productService.getProductById(rawId).catch(() => null) : null;
+      const quantity = Math.max(1, Number(item.quantity) || 1);
+
+      let selectedVariant = null;
+      if (product && Array.isArray(product.variantes) && product.variantes.length > 0) {
+        const vIdx = productService.findVariantIndex(product.variantes, item.color, item.almacenamiento || item.storage);
+        selectedVariant = vIdx !== -1 ? product.variantes[vIdx] : product.variantes[0];
+      }
+
+      const retailPrice = Number(selectedVariant?.precioAlPublico || product?.precioVenta || item.unit_price || 0);
+      const wholesalePrice = Number(selectedVariant?.precioMayorista || product?.precioMayorista || retailPrice || 0);
+
+      wholesaleSubtotal += wholesalePrice * quantity;
+      totalUnits += quantity;
+
+      resolvedItems.push({
+        item,
+        product,
+        quantity,
+        retailPrice,
+        wholesalePrice
+      });
+    }
+
+    const meetsCartTotalCondition = minCartTotal > 0 && wholesaleSubtotal >= minCartTotal;
+    const meetsGlobalUnitsCondition = minCartTotal === 0 && minProductQty > 0 && totalUnits >= minProductQty;
+    const noAdminRestrictions = minCartTotal === 0 && minProductQty === 0;
+
+    const vexorItems = [];
+    let totalFeeAmount = 0;
+
+    for (const entry of resolvedItems) {
+      const { item, product, quantity, retailPrice, wholesalePrice } = entry;
+      const isQtyWholesale = Boolean(product?.aplicarMayoristaPorCantidad && minProductQty > 0 && quantity >= minProductQty);
+      const itemQualifiesForWholesale = meetsCartTotalCondition || meetsGlobalUnitsCondition || isQtyWholesale || noAdminRestrictions;
+
+      const isWholesaleOrigin = String(item.origenDeVenta || '').toLowerCase().includes('revendedor');
+      const sentWholesalePrice =
+        wholesalePrice > 0 &&
+        wholesalePrice < retailPrice &&
+        Math.abs(Number(item.unit_price) - wholesalePrice) < Math.abs(Number(item.unit_price) - retailPrice);
+
+      const isRequestedAsWholesale = isWholesaleOrigin || sentWholesalePrice;
+
+      if (isRequestedAsWholesale && !itemQualifiesForWholesale) {
+        return res.status(400).json({
+          error: 'No se cumplen los requisitos mínimos configurados por el administrador para comprar a precio mayorista.'
+        });
+      }
+
+      const authoritativePrice = (isRequestedAsWholesale && itemQualifiesForWholesale)
+        ? wholesalePrice
+        : (itemQualifiesForWholesale && sentWholesalePrice ? wholesalePrice : retailPrice);
+
+      item.unit_price = authoritativePrice;
+
+      vexorItems.push({
+        title: item.title,
+        unit_price: Number(authoritativePrice),
+        quantity: Number(quantity),
+        description: item.title
+      });
+
+      let itemRate = feePercentage;
+      if (product && product.tasaEcommerce !== null && product.tasaEcommerce !== undefined) {
+        itemRate = parseFloat(product.tasaEcommerce);
+      }
+      totalFeeAmount += (Number(authoritativePrice) * Number(quantity)) * (itemRate / 100);
+    }
 
     if (shippingCost > 0) {
       vexorItems.push({
@@ -71,30 +157,6 @@ const createPayment = async (req, res) => {
         quantity: 1,
         description: "Logística EQUITOP"
       });
-    }
-
-    const mpFeeConfig = await GlobalConfig.findOne({ where: { key: 'mp_fee' } });
-    const feePercentage = mpFeeConfig ? parseFloat(mpFeeConfig.value) : 0;
-
-    // CÁLCULO DE COMISIÓN HÍBRIDO (Global vs Individual)
-    let totalFeeAmount = 0;
-
-    // 1. Calcular fee para productos (buscando tasa individual)
-    for (const item of items) {
-      const productId = item.id ? item.id.toString().split('-')[0] : null;
-      let itemRate = feePercentage; // Por defecto usa la global
-
-      if (productId) {
-        const product = await productService.getProductById(productId).catch(() => null);
-        if (product && product.tasaEcommerce !== null && product.tasaEcommerce !== undefined) {
-            itemRate = parseFloat(product.tasaEcommerce);
-        }
-      }
-      totalFeeAmount += (Number(item.unit_price) * Number(item.quantity)) * (itemRate / 100);
-    }
-
-    // 2. Calcular fee para el envío (usa siempre la global)
-    if (shippingCost > 0) {
       totalFeeAmount += Number(shippingCost) * (feePercentage / 100);
     }
 
