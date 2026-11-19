@@ -54,7 +54,19 @@ const Order = Sequelize.define("order", {
     },
     status: {
         type: DataTypes.STRING,
-        defaultValue: 'pending',
+        defaultValue: 'PENDING',
+    },
+    mpPreferenceId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    mpPaymentId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    mpStatusDetail: {
+        type: DataTypes.STRING,
+        allowNull: true,
     },
     dispatchStatus: {
         type: DataTypes.STRING,

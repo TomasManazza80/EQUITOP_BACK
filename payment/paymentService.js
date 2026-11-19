@@ -1,101 +1,101 @@
-const mercadopago = require('mercadopago');
-const productService = require('../services/productService');
+import crypto from 'crypto';
+import dotenv from 'dotenv';
+import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 
-// CONFIGURACIÓN DE ACCESO
-const ACCESS_TOKEN = 'APP_USR-2648142854934849-012012-5a948aed8f1967e68d8e41e4a5120c2b-632503296';
-const FONT_URL = process.env.FONT_URL;
+dotenv.config();
+
+const getMercadoPagoClient = () => {
+  const accessToken = process.env.MP_ACCESS_TOKEN;
+  if (!accessToken) {
+    throw new Error('MP_ACCESS_TOKEN no está configurado en las variables de entorno.');
+  }
+  return new MercadoPagoConfig({ accessToken });
+};
+
 /**
- * CREA UNA PREFERENCIA DIRECTA EN MERCADO PAGO (OPCIONAL SI NO USAS VEXOR)
+ * Crea una preferencia de Checkout Pro usando Mercado Pago SDK v2.
  */
-const createPreference = async (createPaymentDto, orderId) => {
-  mercadopago.configure({
-    access_token: ACCESS_TOKEN,
-  });
+export const createCheckoutPreference = async ({
+  items,
+  externalReference,
+  backUrls,
+  autoReturn,
+  notificationUrl,
+  payer
+}) => {
+  const client = getMercadoPagoClient();
+  const preference = new Preference(client);
 
-  const preferenceData = {
-    items: [
-      {
-        title: createPaymentDto.title,
-        quantity: Number(createPaymentDto.quantity),
-        unit_price: Number(createPaymentDto.price),
-        currency_id: 'ARS',
-      },
-    ],
-    back_urls: {
-      success: FONT_URL + '/pagoExitoso',
-      failure: FONT_URL + '/pago-fallido',
-      pending: FONT_URL + '/pago-pendiente',
-    },
-    auto_return: 'approved',
-    external_reference: String(orderId),
+  const body = {
+    items: items.map((item) => ({
+      id: String(item.id),
+      title: String(item.title).slice(0, 256),
+      quantity: Number(item.quantity),
+      unit_price: Number(Number(item.unit_price).toFixed(2)),
+      currency_id: 'ARS',
+      ...(item.description ? { description: String(item.description).slice(0, 256) } : {})
+    })),
+    external_reference: String(externalReference),
+    back_urls: backUrls,
+    ...(autoReturn ? { auto_return: autoReturn } : {}),
+    ...(notificationUrl ? { notification_url: notificationUrl } : {}),
+    ...(payer ? { payer } : {})
   };
 
-  try {
-    const response = await mercadopago.preferences.create(preferenceData);
-    return response.body;
-  } catch (error) {
-    console.error('[MP_SERVICE_ERROR]:', error);
-    throw error;
-  }
+  const response = await preference.create({ body });
+  return {
+    id: response.id,
+    init_point: response.init_point,
+    sandbox_init_point: response.sandbox_init_point
+  };
 };
 
 /**
- * PROCESA EL WEBHOOK PARA DESCONTAR STOCK (VERSION LEGACY)
+ * Consulta un pago real en Mercado Pago usando SDK v2.
  */
-const processWebhookData = async (webhookData) => {
-  if (webhookData?.data?.product) {
-    const { id, quantity, color, almacenamiento, storage } = webhookData.data.product;
-    return await productService.updateQuantityProduct(id, {
-      quantityToDiscount: quantity,
-      color,
-      almacenamiento: almacenamiento || storage
-    });
-  } else {
-    console.warn('DATOS_INSUFICIENTES: El webhook no contiene info de producto');
-  }
+export const getPaymentById = async (paymentId) => {
+  const client = getMercadoPagoClient();
+  const payment = new Payment(client);
+  return await payment.get({ id: String(paymentId) });
 };
 
 /**
- * ENVÍA NOTIFICACIÓN DE ÉXITO A URL EXTERNA
+ * Valida la firma HMAC de webhooks cuando MP_WEBHOOK_SECRET está configurado.
  */
-const notifySuccess = async (webhookData) => {
-  const url = 'https://indumentarianam.netlify.app/';
+export const verifyWebhookSignature = (req, dataId) => {
+  const secret = process.env.MP_WEBHOOK_SECRET;
+  if (!secret) return true;
+
+  const xSignature = req.headers['x-signature'];
+  const xRequestId = req.headers['x-request-id'];
+  if (!xSignature || !xRequestId || !dataId) return false;
+
+  const parts = String(xSignature).split(',');
+  let ts = null;
+  let v1 = null;
+
+  for (const part of parts) {
+    const [rawKey, rawVal] = part.split('=');
+    const key = rawKey?.trim();
+    const val = rawVal?.trim();
+    if (key === 'ts') ts = val;
+    if (key === 'v1') v1 = val;
+  }
+
+  if (!ts || !v1) return false;
+
+  const manifest = `id:${String(dataId).toLowerCase()};request-id:${xRequestId};ts:${ts};`;
+  const expected = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: webhookData.id,
-        status: webhookData.data?.status,
-        amount: webhookData.data?.amount,
-        product: webhookData.data?.product
-      })
-    });
-    console.log('[NOTIFICACION_EXTERNA] Enviada con éxito');
-    return await response.json();
-  } catch (error) {
-    console.error('[ERROR_NOTIFICACION_EXTERNA]:', error.message);
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
+  } catch {
+    return false;
   }
 };
 
-/**
- * OBTIENE EL ESTADO DEL PAGO DIRECTAMENTE DE MERCADO PAGO
- */
-const getPaymentById = async (id) => {
-  mercadopago.configure({ access_token: ACCESS_TOKEN });
-  try {
-    const response = await mercadopago.payment.get(id);
-    return response.body;
-  } catch (error) {
-    console.error('[MP_SERVICE_ERROR] getPaymentById:', error);
-    return null;
-  }
-};
-
-module.exports = {
-  createPreference,
-  processWebhookData,
-  notifySuccess,
-  getPaymentById
+export default {
+  createCheckoutPreference,
+  getPaymentById,
+  verifyWebhookSignature
 };

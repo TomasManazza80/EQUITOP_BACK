@@ -16,6 +16,7 @@ import usersRouter from './routes/users.js';
 import productRouter from './routes/product.js';
 import reparacionesRouter from './routes/reparacionesRoutes.js';
 import paymentRouter from './routes/paymentRoutes.js';
+import { handleWebhook as mercadopagoWebhookHandler } from './controller/paymentController.js';
 import productBought from './routes/productBoughtRoute.js';
 import recaudationRouter from './routes/recaudationRoutes.js';
 import pagoCaja from './routes/pagoCajaRoutes.js';
@@ -63,12 +64,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.disable('x-powered-by');
 
-// Instancia Vexor
-const vexorInstance = new Vexor({
-    publishableKey: process.env.VEXOR_PUBLISHABLE_KEY,
-    projectId: process.env.VEXOR_PROJECT_ID,
-    apiKey: process.env.VEXOR_API_KEY,
-});
+// Instancia Vexor (legacy opcional)
+const vexorInstance = process.env.VEXOR_API_KEY && process.env.VEXOR_PROJECT_ID
+    ? new Vexor({
+        publishableKey: process.env.VEXOR_PUBLISHABLE_KEY,
+        projectId: process.env.VEXOR_PROJECT_ID,
+        apiKey: process.env.VEXOR_API_KEY,
+    })
+    : null;
 
 // Settings
 app.set('view engine', 'pug');
@@ -91,6 +94,8 @@ app.use('/', usersRouter);
 app.use('/', productRouter);
 app.use('/ecommerce', ventasEcommerceRouter);
 app.use('/payment', paymentRouter);
+app.use('/api/payments', paymentRouter);
+app.post('/api/webhooks/mercadopago', mercadopagoWebhookHandler);
 app.use('/boughtProduct', productBought);
 app.use('/recaudation', recaudationRouter);
 app.use('/reparaciones', reparacionesRouter);

@@ -1,10 +1,15 @@
-const express = require('express');
-const paymentController = require('../controller/paymentController.js');
+import express from 'express';
+import {
+  createPayment,
+  handleWebhook,
+  getOrderStatus
+} from '../controller/paymentController.js';
 
 const router = express.Router();
 
-// ENDPOINTS DE TRANSACCIÓN
-router.post('/create_payment', paymentController.createPayment);
-router.post('/webhook', paymentController.handleWebhook);
+router.post('/create_payment', createPayment);
+router.post('/create-preference', createPayment);
+router.post('/webhook', handleWebhook);
+router.get('/order/:externalReference', getOrderStatus);
 
-module.exports = router;
+export default router;

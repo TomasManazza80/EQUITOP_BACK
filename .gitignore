@@ -1,2 +1,6 @@
 node_modules/
 auth_info_baileys/
+baileys_session/
+.env
+.env.local
+.env.*.local
